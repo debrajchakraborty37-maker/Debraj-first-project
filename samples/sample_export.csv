@@ -1,0 +1,6 @@
+Day,Campaign name,Ad set name,Ad name,Amount spent (USD),Impressions,Reach,Link clicks,Leads,Purchases,Purchase conversion value
+2026-10-01,Lead Gen,Audience A,Ad 1,50.00,10000,8000,200,12,0,0
+2026-10-01,Lead Gen,Audience B,Ad 2,30.00,6000,5000,90,5,0,0
+2026-10-01,Sales,Retarget,Ad 3,80.00,7000,4000,150,0,6,420.00
+2026-10-02,Lead Gen,Audience A,Ad 1,55.00,11000,8500,210,14,0,0
+2026-10-02,Sales,Retarget,Ad 3,90.00,8000,4500,170,0,8,560.50
