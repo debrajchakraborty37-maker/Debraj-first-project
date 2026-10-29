@@ -1,0 +1,69 @@
+{
+  "date": "2026-10-28",
+  "spend": 1215764.27,
+  "leads": 1693,
+  "qualified": 417,
+  "meetings": 92,
+  "cost_per_meeting": 13214.829021739131,
+  "qa": [
+    {
+      "check": "Spend reconciles: campaign = ad set = ad (\u00b1\u20b91)",
+      "ok": true,
+      "detail": "1,215,764.27 / 1,215,764.27 / 1,215,764.27"
+    },
+    {
+      "check": "CRM leads: campaign table = Data_CRM rows",
+      "ok": true,
+      "detail": "1693 vs 1693"
+    },
+    {
+      "check": "CRM leads: ad table = Data_CRM rows",
+      "ok": true,
+      "detail": "1693 vs 1693"
+    },
+    {
+      "check": "Qualified: campaign table = CRM flag",
+      "ok": true,
+      "detail": "417 vs 417"
+    },
+    {
+      "check": "No duplicate Social Lead IDs",
+      "ok": true,
+      "detail": "0 duplicates"
+    },
+    {
+      "check": "No unmapped leads",
+      "ok": true,
+      "detail": "0 unmapped"
+    },
+    {
+      "check": "Meetings: campaign table >= ad table",
+      "ok": true,
+      "detail": "92 vs 91"
+    }
+  ],
+  "scale": [
+    {
+      "ad": "Stockist_Reel",
+      "adset": "LAL_1%_Client Data_Stockist",
+      "cpm": 8322.882608695652
+    }
+  ],
+  "reduce": [
+    {
+      "ad": "Signature_Store_160_Glass_SO",
+      "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+      "spend": 230022.44
+    },
+    {
+      "ad": "Signature Store_SO",
+      "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+      "spend": 174808.13
+    },
+    {
+      "ad": "Signature_Store_OCT_SO",
+      "adset": "LAL_1%_Client Data_Signature Store FICO",
+      "spend": 51377.85
+    }
+  ]
+}
