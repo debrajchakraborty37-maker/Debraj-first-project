@@ -7,7 +7,7 @@ Output: <outdir>/Deep_Analysis_Report-<end date>.xlsx, digest.md, facts.json
 
 Usage : python3 pipeline/analyze_report.py <report.xlsx> [--outdir outputs/<date>] [--history history/daily_snapshot.csv]
 """
-import argparse, json, os, sys
+import argparse, json, os, subprocess, sys, shutil
 import numpy as np, pandas as pd, openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -516,7 +516,9 @@ def build(path, outdir, history_path, targets_path):
     wb._sheets = [wb[n] for n in order]; wb.active = 0
 
     os.makedirs(outdir, exist_ok=True)
-    xlsx = os.path.join(outdir, f"Deep_Analysis_Report-{stamp}.xlsx"); wb.save(xlsx)
+    xlsx = os.path.join(outdir, f"Daewoo_x_ShootOrder-Deep_Analysis_Report-MTD-1-{end.day}{end.strftime('%b')}{end.year}.xlsx"); wb.save(xlsx)
+    lo = os.path.join(outdir, '_lo'); subprocess.run(['soffice', '--headless', '--calc', '--convert-to', 'xlsx:Calc MS Excel 2007 XML', '--outdir', lo, xlsx], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    os.replace(os.path.join(lo, os.path.basename(xlsx)), xlsx); os.rmdir(lo)
 
     # ---------------- digest + facts
     fails = [n for n, ok, d in qa if not ok]

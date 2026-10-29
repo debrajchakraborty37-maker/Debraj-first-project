@@ -1,3 +1,5 @@
 inbox/*/*
-!inbox/*/.gitkeep
+inbox/*/raw/
+!inbox/.gitkeep
 __pycache__/
+outputs/*/*Campaign_Performance_Report*.xlsx
