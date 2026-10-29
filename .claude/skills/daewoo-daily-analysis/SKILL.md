@@ -13,7 +13,7 @@ File names are matched by keyword (`campaigns`, `ad-sets`, `-ads-`, `leadchain`,
 1. `python3 pipeline/collect_uploads.py` → picks the newest 8 uploaded files, reads the period from the Meta CSV, copies them to `inbox/<date>/raw/`.
    - exit 4 (files missing) → tell the user exactly which file types are missing and stop.
    - exit 5 (already built) → say today's report was already produced and give the existing files; rebuild only if the user asks (`--force`).
-2. Run the pipeline (below), then send **Report 1, Report 2 and the digest** in chat (SendUserFile). If an email connector is connected, also email debraj.c@theebg.com; otherwise say email is not connected.
+2. Run the pipeline (below), then send **Report 1, Report 2 and the digest** here in chat (SendUserFile). No email and no schedule — the user uploads the files and asks for the reports.
 
 ## Run
 `python3 pipeline/run_daily.py inbox/<date>/raw`
@@ -27,7 +27,7 @@ File names are matched by keyword (`campaigns`, `ad-sets`, `-ads-`, `leadchain`,
 - New campaign / ad set shown as "(untracked ad set — no parent on record)" → ask the user where it belongs, then add it to `config/structure.json`.
 
 ## Deliver
-Send the user both workbooks and the digest text (email/Slack when connected, otherwise SendUserFile). Add 2–3 sentences of judgement, keeping every number exactly as in the digest. Commit `outputs/<date>/` (Report 2, digest, facts), `history/` and any `config/` change, push to the working branch. Report 1 and `inbox/` are git-ignored because they contain lead e-mail addresses.
+Send the user both workbooks and the digest text in chat (SendUserFile). Add 2–3 sentences of judgement, keeping every number exactly as in the digest. Commit `outputs/<date>/` (Report 2, digest, facts), `history/` and any `config/` change, push to the working branch. Report 1 and `inbox/` are git-ignored because they contain lead e-mail addresses.
 
 ## Rules
 - Cost per meeting is the headline KPI; CPL is secondary. Judge lead quality only on leads ≥3 days old.
