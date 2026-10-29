@@ -157,6 +157,10 @@ def funnel_sheet(ws, df, keycols, keyheads, first_row, total_label):
 def build(path, outdir, history_path, targets_path):
     camp, adsets, adl, crm = load(path)
     qa = qa_checks(camp, adsets, adl, crm)
+    if camp.leads.sum() == 0 or camp.spend.sum() == 0 or len(crm) == 0:
+        print("STOP: the report has no calculated values (open it in Excel, let it recalculate, save, and re-upload) "
+              "or it is empty. Failed checks: " + "; ".join(n for n, ok, d in qa if not ok))
+        return 3
     end = crm.date.max(); ndays = int(end.day); cut = max(ndays - 3, 1)
     label = end.strftime("%d %b %Y"); stamp = end.strftime("%Y-%m-%d")
     mature = crm[crm.day <= cut]
