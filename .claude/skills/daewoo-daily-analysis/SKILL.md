@@ -9,6 +9,12 @@ description: Daily Daewoo x ShootOrder Meta Ads reporting agent. Use when the us
 Meta Ads Manager CSVs (Campaigns, Ad sets, Ads) · LeadChain CSV(s) · CRM LeadModule1 and LeadModule2 (.xlsx) · MeetingLeads (.xlsx) · MeetingDetails (.xlsx).
 File names are matched by keyword (`campaigns`, `ad-sets`, `-ads-`, `leadchain`, `leadmodule1/2`, `meetingleads`, `meetingdetails`), so hash prefixes are fine.
 
+## Daily flow (files uploaded in chat)
+1. `python3 pipeline/collect_uploads.py` → picks the newest 8 uploaded files, reads the period from the Meta CSV, copies them to `inbox/<date>/raw/`.
+   - exit 4 (files missing) → tell the user exactly which file types are missing and stop.
+   - exit 5 (already built) → say today's report was already produced and give the existing files; rebuild only if the user asks (`--force`).
+2. Run the pipeline (below), then send **Report 1, Report 2 and the digest** in chat (SendUserFile). If an email connector is connected, also email debraj.c@theebg.com; otherwise say email is not connected.
+
 ## Run
 `python3 pipeline/run_daily.py inbox/<date>/raw`
 1. `clean_raw.py` repairs LeadChain (padded columns, repeated headers, duplicate IDs), canonicalises names by persistent ID, joins LeadModule1 on Social Lead ID and LeadModule2 on the first 15 digits, adds MeetingLeads leads, maps MeetingDetails (Social Lead ID → e-mail/phone), applies the Qualified/Meeting rules.
