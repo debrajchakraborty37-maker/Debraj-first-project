@@ -1,0 +1,13 @@
+{
+  "cost_per_meeting": 12000,
+  "cpqk": 2500,
+  "qualified_pct": 0.30,
+  "qual_to_meeting": 0.25,
+  "cpl": 700,
+  "contact_rate": 0.70,
+  "junk_rate": 0.05,
+  "ctr": 0.007,
+  "click_to_lead": 0.06,
+  "frequency": 3,
+  "speed_to_lead_min": 15
+}

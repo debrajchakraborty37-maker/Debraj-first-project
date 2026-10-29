@@ -1,0 +1,44 @@
+date,level,key,spend,impr,reach,clicks,leads,qualified,meetings
+2026-10-28,campaign,Andromeda_CBO_Signature Store_FICO_Daewoo_SO,672858.87,4576967,1850403,22823,1208,243,31
+2026-10-28,campaign,META_CustomData_MOFU_STOCKIST_Leadgen,338747.09,862709,367607,5066,340,126,41
+2026-10-28,campaign,Andromeda_ABO_Stockist_Daewoo_SO,0.0,0,0,0,0,0,1
+2026-10-28,campaign,META_CustomData_MOFU_Leadgen – Signature FICO,194123.34,390794,221625,2781,139,46,9
+2026-10-28,campaign,META_RMKT_Engage_ABO_SO,7213.35,19452,2134,84,0,0,0
+2026-10-28,campaign,META_RMKT_Socials Pages_CBO_SO,2821.62,10131,4306,116,6,2,1
+2026-10-28,campaign,CRM Custom List_CBO_SO,0.0,0,0,0,0,0,9
+2026-10-28,adset,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || Business Interest Signature Stores_FICO,229018.3,1577811,790322,7499,348,76,16
+2026-10-28,adset,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || HHI Pan India With Exclusions Signature Stores_FICO,443840.57,2999156,1180535,15324,860,167,15
+2026-10-28,adset,META_CustomData_MOFU_STOCKIST_Leadgen || Client Custom Data_Stockist,7962.14,6301,2549,60,15,11,6
+2026-10-28,adset,META_CustomData_MOFU_STOCKIST_Leadgen || LAL_1%_Client Data_Stockist,330784.95,856408,366715,5006,325,115,35
+2026-10-28,adset,Andromeda_ABO_Stockist_Daewoo_SO || New Stockist Audience Owners,0.0,0,0,0,0,0,1
+2026-10-28,adset,META_CustomData_MOFU_Leadgen – Signature FICO || LAL_1%_Client Data_Signature Store FICO,194123.34,390794,221625,2781,139,46,9
+2026-10-28,adset,META_RMKT_Engage_ABO_SO || CRM_Engagements_Positive,1618.94,1767,104,5,0,0,0
+2026-10-28,adset,META_RMKT_Engage_ABO_SO || FB Page Engagements,2793.17,10146,1442,31,0,0,0
+2026-10-28,adset,META_RMKT_Engage_ABO_SO || IG Page Engagements,2801.24,7539,1185,48,0,0,0
+2026-10-28,adset,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO,2821.62,10131,4306,116,6,2,1
+2026-10-28,adset,CRM Custom List_CBO_SO || Qualified LAL All Models,0.0,0,0,0,0,0,9
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || Business Interest Signature Stores_FICO || Reel – V1_Signature_Store_FICO,18325.06,64699,43290,532,24,4,2
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || Business Interest Signature Stores_FICO || Signature_Store_160_Glass_SO,115776.82,924764,527548,3622,170,42,8
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || Business Interest Signature Stores_FICO || Signature Store_SO,94722.89,587574,320523,3342,154,30,6
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || Business Interest Signature Stores_FICO || Signature_Store_OCT_SO,193.53,774,662,3,0,0,0
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || HHI Pan India With Exclusions Signature Stores_FICO || Signature_Store_OCT_SO,16371.59,63960,44687,382,30,9,0
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || HHI Pan India With Exclusions Signature Stores_FICO || Signature Store_SO,174808.13,1008172,428606,6157,361,57,4
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || HHI Pan India With Exclusions Signature Stores_FICO || Signature_Store_160_Glass_SO,230022.44,1860027,874490,8247,421,92,10
+2026-10-28,ad,Andromeda_CBO_Signature Store_FICO_Daewoo_SO || HHI Pan India With Exclusions Signature Stores_FICO || Reel – V1_Signature_Store_FICO,22638.41,66997,46060,538,48,9,1
+2026-10-28,ad,META_CustomData_MOFU_STOCKIST_Leadgen || Client Custom Data_Stockist || Stockist_IMG_3.5_Limited_All Large_SO,7962.14,6301,2549,60,15,11,6
+2026-10-28,ad,META_CustomData_MOFU_STOCKIST_Leadgen || LAL_1%_Client Data_Stockist || Stockist_Reel,191426.3,474667,284877,2763,199,68,23
+2026-10-28,ad,META_CustomData_MOFU_STOCKIST_Leadgen || LAL_1%_Client Data_Stockist || Stockist_IMG_3.5_Limited_All Large_SO,139358.65,381741,166773,2243,126,47,12
+2026-10-28,ad,META_CustomData_MOFU_Leadgen – Signature FICO || LAL_1%_Client Data_Signature Store FICO || Reel – V1_Signature_Store,142745.49,285327,188498,2229,95,30,7
+2026-10-28,ad,META_CustomData_MOFU_Leadgen – Signature FICO || LAL_1%_Client Data_Signature Store FICO || Signature_Store_OCT_SO,51377.85,105467,53954,552,44,16,2
+2026-10-28,ad,META_RMKT_Engage_ABO_SO || CRM_Engagements_Positive || Stockist Reel Engage,1618.94,1767,104,5,0,0,0
+2026-10-28,ad,META_RMKT_Engage_ABO_SO || FB Page Engagements || Stockist Reel Engage,2793.17,10146,1442,31,0,0,0
+2026-10-28,ad,META_RMKT_Engage_ABO_SO || IG Page Engagements || Stockist Reel Engage,2801.24,7539,1185,48,0,0,0
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || Stockist_IMG_3.5_Limited_All Large_SO,400.48,1572,977,8,0,0,1
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || Stockist 33 Billion,55.16,172,136,2,0,0,0
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || Stockist_Reel,1498.0,5402,3234,76,6,2,0
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || 58 Year Trust Stockist,63.37,187,151,0,0,0,0
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || Reel – Ashish_Signature_Store,85.26,195,167,7,0,0,0
+2026-10-28,ad,META_RMKT_Socials Pages_CBO_SO || Socials Pages_SO || Stockist_Building_July,719.35,2603,1539,23,0,0,0
+2026-10-28,ad,CRM Custom List_CBO_SO || Qualified LAL All Models || Stockist_Reel_LAL_Q,0.0,0,0,0,0,0,5
+2026-10-28,ad,CRM Custom List_CBO_SO || Qualified LAL All Models || LAL_Q_Signature Store_SO,0.0,0,0,0,0,0,1
+2026-10-28,ad,CRM Custom List_CBO_SO || Qualified LAL All Models || LAL_Q_ Signature_Store_160_Glass,0.0,0,0,0,0,0,3

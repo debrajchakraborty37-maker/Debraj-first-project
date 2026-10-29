@@ -1,0 +1,353 @@
+{
+ "campaigns": [
+  "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+  "META_CustomData_MOFU_STOCKIST_Leadgen",
+  "Andromeda_ABO_Stockist_Daewoo_SO",
+  "Andromeda_CBO__DDP_Daewoo_SO",
+  "META_CustomData_MOFU_Leadgen – DDP",
+  "META_CustomData_MOFU_Leadgen – Signature FICO",
+  "META_RMKT_Engage_ABO_SO",
+  "META_RMKT_Socials Pages_CBO_SO",
+  "CRM Custom List_CBO_SO"
+ ],
+ "adsets": [
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "starts": "2026-02-27"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+   "starts": "2026-10-17"
+  },
+  {
+   "parent": "META_CustomData_MOFU_STOCKIST_Leadgen",
+   "adset": "Client Custom Data_Stockist",
+   "starts": "2026-03-11"
+  },
+  {
+   "parent": "META_CustomData_MOFU_STOCKIST_Leadgen",
+   "adset": "LAL_1%_Client Data_Stockist",
+   "starts": "2026-03-12"
+  },
+  {
+   "parent": "Andromeda_ABO_Stockist_Daewoo_SO",
+   "adset": "Business Interest",
+   "starts": "2026-03-26"
+  },
+  {
+   "parent": "Andromeda_ABO_Stockist_Daewoo_SO",
+   "adset": "New Stockist Audience Owners",
+   "starts": "2026-06-04"
+  },
+  {
+   "parent": "Andromeda_ABO_Stockist_Daewoo_SO",
+   "adset": "Stockists_High_Income_and_Premium_Interest_SO",
+   "starts": "2026-03-26"
+  },
+  {
+   "parent": "Andromeda_CBO__DDP_Daewoo_SO",
+   "adset": "Business Interest DDP Partnerships",
+   "starts": "2026-05-08"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – DDP",
+   "adset": "Business Interest DDP Partnerships",
+   "starts": "2026-05-21"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – DDP",
+   "adset": "Client Custom Data_DDP",
+   "starts": "2026-05-21"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – DDP",
+   "adset": "LAL_1%_Client Data_DDP",
+   "starts": "2026-05-21"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – Signature FICO",
+   "adset": "Client Custom Data_Signature Store FICO",
+   "starts": "2026-05-21"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – Signature FICO",
+   "adset": "LAL_1%_Client Data_Signature Store FICO",
+   "starts": "2026-05-21"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "CRM_Engagements_Positive",
+   "starts": "2026-06-22"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "FB Page Engagements",
+   "starts": "2026-05-31"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "IG Page Engagements",
+   "starts": "2026-05-31"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages FB_ABO – Stockist",
+   "starts": "2026-05-22"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages IG_ABO – Stockist",
+   "starts": "2026-05-22"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "starts": "2026-06-04"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "starts": "2026-06-20"
+  }
+ ],
+ "ads": [
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Reel – V1_Signature_Store_FICO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store Launch"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store Franchise V2"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store Command"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Home Appliance Franchise V1_Signature_Store"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_24 percent v2_"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store 24 percent"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "24 percent new building_Signature_Store"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Upto 24 percent model G_Signature_Store_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Premium_Signature_Store_Large"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_24_Large_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_24_Blu_Large_SO_"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Reel_All_Signature_Store_FICO_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Reel_Signature_Store_Large"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_Large Factory_Type_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_160_Glass_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature Store_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "Business Interest Signature Stores_FICO",
+   "ad": "Signature_Store_OCT_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+   "ad": "Signature_Store_OCT_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+   "ad": "Signature Store_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+   "ad": "Signature_Store_160_Glass_SO"
+  },
+  {
+   "parent": "Andromeda_CBO_Signature Store_FICO_Daewoo_SO",
+   "adset": "HHI Pan India With Exclusions Signature Stores_FICO",
+   "ad": "Reel – V1_Signature_Store_FICO"
+  },
+  {
+   "parent": "META_CustomData_MOFU_STOCKIST_Leadgen",
+   "adset": "Client Custom Data_Stockist",
+   "ad": "Stockist_IMG_3.5_Limited_All Large_SO"
+  },
+  {
+   "parent": "META_CustomData_MOFU_STOCKIST_Leadgen",
+   "adset": "LAL_1%_Client Data_Stockist",
+   "ad": "Stockist_Reel"
+  },
+  {
+   "parent": "META_CustomData_MOFU_STOCKIST_Leadgen",
+   "adset": "LAL_1%_Client Data_Stockist",
+   "ad": "Stockist_IMG_3.5_Limited_All Large_SO"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – Signature FICO",
+   "adset": "Client Custom Data_Signature Store FICO",
+   "ad": "Signature_Store_OCT_SO"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – Signature FICO",
+   "adset": "LAL_1%_Client Data_Signature Store FICO",
+   "ad": "Reel – V1_Signature_Store"
+  },
+  {
+   "parent": "META_CustomData_MOFU_Leadgen – Signature FICO",
+   "adset": "LAL_1%_Client Data_Signature Store FICO",
+   "ad": "Signature_Store_OCT_SO"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "CRM_Engagements_Positive",
+   "ad": "Stockist Reel Engage"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "FB Page Engagements",
+   "ad": "Stockist Reel Engage"
+  },
+  {
+   "parent": "META_RMKT_Engage_ABO_SO",
+   "adset": "IG Page Engagements",
+   "ad": "Stockist Reel Engage"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "Stockist_IMG_3.5_Limited_All Large_SO"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "Stockist 33 Billion"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "Stockist_Reel"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "58 Year Trust Stockist"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "Reel – Ashish_Signature_Store"
+  },
+  {
+   "parent": "META_RMKT_Socials Pages_CBO_SO",
+   "adset": "Socials Pages_SO",
+   "ad": "Stockist_Building_July"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Stockist 33 Billion_LAL_Q_SO"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Reel – Ashish_Signature_Store_LAL_Q"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Stockist_IMG_3.5_Limited_All Large_LAL_Q"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "58 Year Trust Stockist_LAL_Q"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Stockist_Reel_LAL_Q"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "LAL_Q_Signature Store_SO"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Stockist_5_Opportunity_LAL_Q"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "LAL_Q_ Signature_Store_Large Factory_Type"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "LAL_Q_ Signature_Store_160_Glass"
+  },
+  {
+   "parent": "CRM Custom List_CBO_SO",
+   "adset": "Qualified LAL All Models",
+   "ad": "Aug_Signature_Store_LAL_Q"
+  }
+ ],
+ "excluded_campaigns_note": "zero-data campaigns not listed here are left out of the tables"
+}
