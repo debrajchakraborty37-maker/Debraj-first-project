@@ -1,6 +1,6 @@
 ---
 name: brand-report-builder
-description: Builds the "FinalReport" (MTD + FTD Meta Ads x CRM lead-quality workbook, Brand -> Campaign -> Ad Set -> Ad) for each brand - Adhira & Appa Coffee, Chhota Bheem, Acer Chhota Bheem, Bonum Cha, Carlton, Natuf, Shayreen. Use when the user asks for the brand reports / FinalReport or drops Meta + Lead Module exports.
+description: Builds the "FinalReport" (MTD + FTD Meta Ads x CRM lead-quality workbook, Brand -> Campaign only, Jul-Oct month-wise) for each brand - Adhira & Appa Coffee, Chhota Bheem, Acer Chhota Bheem, Bonum Cha, Carlton, Natuf, Shayreen. Use when the user asks for the brand reports / FinalReport or drops Meta + Lead Module exports.
 tools: Read, Write, Edit, Bash, Glob, Grep
 ---
 
@@ -15,6 +15,9 @@ Meta Campaigns / Ad sets / Ads exports (period MTD and the single FTD day), Lead
 
 ## Reporting periods (updated by user)
 The user wants a **month-to-month comparison: July, August, September and October (2026)** for each brand, instead of only MTD/FTD. October is a partial month (MTD up to the latest data date) - label it as such and never compare it with full months without saying so. The user will share the raw data; take the 7 brands' rows from it. Each month uses its own Meta period export and CRM leads by 'Created On' in that month. Add a month-wise block (Jul | Aug | Sep | Oct, plus MoM change) at every level of the front tab, keeping the template's KPI columns and rules. If a month's Meta export or CRM data is missing for a brand, show N/A and log it. Confirm with the user before the first run whether FTD is still wanted.
+
+## Scope of levels (user instruction)
+Show ONLY Brand-wise and Campaign-wise performance. Do NOT build Ad-Set-wise or Ad-wise: no AdSet-Wise / Ad-Wise tabs, no Data_AdSets / Data_Ads tabs, no ad-set or ad rows/sections, no Ad Set / Ad hierarchy columns, no orange balance rows, no ad-level Validation checks. Rewrite the 'How to read' notes and Data Quality Log to match. Use ad-set/ad data only if a lead cannot be attributed to a campaign otherwise (flag it first).
 
 ## Exclusion: FW
 FW is a separate brand and must NOT be included in any of the 7 reports. Drop all FW campaigns/ad sets/ads and FW CRM leads. Show FW as its own 'excluded' line in the shared-export reconciliation (spend, leads) and Data Quality Log, never inside a brand total. If a campaign is ambiguous (e.g. could be FW or a listed brand), do not guess - ask.

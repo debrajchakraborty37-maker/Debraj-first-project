@@ -30,3 +30,6 @@ All Reports (One Tab) · MTD Report · FTD Report · Master Pivot · Brand-Wise 
 
 ## Period change (user request)
 Reports are month-to-month: Jul, Aug, Sep, Oct 2026 (Oct partial/MTD). The template's MTD/FTD blocks are the pattern; the month blocks replace/extend them. Open: whether FTD stays.
+
+## Scope change (user request): Brand + Campaign level only
+Drop AdSet-Wise, Ad-Wise, Data_AdSets, Data_Ads, ad-set/ad sections and the Ad Set / Ad columns (C, D) in the front tab, orange balance rows, and ad-level Validation/Data-Quality checks. Keep Brand-Wise, Campaign-Wise and all KPI blocks. Notes/Data Quality Log rewritten accordingly.
