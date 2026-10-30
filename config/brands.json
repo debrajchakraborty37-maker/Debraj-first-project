@@ -1,5 +1,5 @@
 {
-  "_note": "CRM Brand values + Meta export prefix used by pipeline/build_brand_report.py. Acer Chhota Bheem deferred by user. Adhira & Appa Toys / Tk UF / Tk MF, Acer, and all other brands are out of scope.",
+  "_note": "CRM Brand values + Meta export prefix used by pipeline/build_brand_report.py. Acer Chhota Bheem = Acer Electric Bikes + Acer TK (user choice). Adhira & Appa Toys / Tk UF / Tk MF, Acer, and all other brands are out of scope.",
   "brands": [
     {
       "name": "Adhira & Appa Coffee",
@@ -122,9 +122,14 @@
       "crm_brand_values": [
         "Shayreen by Natuf"
       ]
+    },
+    "Acer Chhota Bheem": {
+      "meta_file_prefix": "Inhouse-__-Acer",
+      "crm_brand_values": [
+        "Acer Electric Bikes",
+        "Acer TK"
+      ]
     }
   },
-  "deferred_brands": [
-    "Acer Chhota Bheem"
-  ]
+  "deferred_brands": []
 }

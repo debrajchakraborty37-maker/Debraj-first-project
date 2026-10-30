@@ -28,6 +28,7 @@ BRANDS = {
     "Carlton": ("Kustard-__-Carlton", ["Carlon Spa", "Carlton Salon", "Carlton Wellness Center", "In House Carlton Salon",
                                        "In House Carlton Wellness", "Carlton"]),
     "Shayreen": ("In-House-SHAYREEN", ["Shayreen by Natuf"]),
+    "Acer Chhota Bheem": ("Inhouse-__-Acer", ["Acer Electric Bikes", "Acer TK"]),
 }
 
 # ---- metric layout (one block per month + total) ----
