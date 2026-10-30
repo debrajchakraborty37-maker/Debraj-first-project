@@ -17,6 +17,8 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **"N/A" removed:** undefined cells show "–" (never a fake 0); keep every campaign row; fill Reach / Landing page views only with real Meta data — ask for monthly campaign export with those columns + account-level reach.
 - **Reusability:** user will request this report repeatedly → skill `brand-month-report`, docs, config-driven months/brands (`config/report_config.json`), one-command `pipeline/run_report.sh`.
 
+- **Agent name:** the report agent is called **Brio** (`.claude/agents/brio.md`); user asked for a small name.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

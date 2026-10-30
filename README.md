@@ -9,7 +9,7 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 - Needs: python3 with pandas, numpy, openpyxl, and LibreOffice (`soffice`) for recalculation.
 
 ## Brand month-to-month reports (reusable)
-- **Start here:** skill `.claude/skills/brand-month-report/SKILL.md` · architecture `docs/ARCHITECTURE.md` · decision log `docs/DECISIONS.md` · config `config/report_config.json` (months, brands, rules — edit this, not the code) · agent `.claude/agents/brand-report-builder.md`.
+- **Start here:** skill `.claude/skills/brand-month-report/SKILL.md` · architecture `docs/ARCHITECTURE.md` · decision log `docs/DECISIONS.md` · config `config/report_config.json` (months, brands, rules — edit this, not the code) · agent `.claude/agents/brio.md`.
 - **Run:** `pipeline/run_report.sh <lead_dir> <meta_dir> <out_dir> [brand ...]` — build → LibreOffice recalc → real PivotTable + slicers → four independent verifiers → `Brand_Reports.zip`. Needs python3 (pandas, numpy, openpyxl) and LibreOffice. Exits non-zero if any check fails.
 - Each brand workbook: Master Dashboard (Month dropdown, tiles, charts), All Reports (One Tab), Month-on-Month, Master Pivot (open in desktop Excel for slicers), Brand-Wise, Campaign-Wise, KPI Definitions, Data Quality Log, Validation, and data tabs.
 - Raw data (PII), generated workbooks and the reference workbook are git-ignored; supply them again for each run.
