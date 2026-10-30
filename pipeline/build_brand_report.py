@@ -31,6 +31,10 @@ BRANDS = {
     "Acer Chhota Bheem": ("Inhouse-__-Acer", ["Acer Electric Bikes", "Acer TK"]),
 }
 
+# 1 Jul-30 Oct single-period Meta totals from the first export (for the reconciliation note)
+EARLIER = {"Natuf": 6433014.17, "Adhira & Appa Coffee": 4738868.01, "Chhota Bheem": 1408986.18, "Bonum Cha": 1215440.55,
+           "Carlton": 6930856.33, "Shayreen": 747703.77, "Acer Chhota Bheem": 1814047.88}
+
 # ---- metric layout (one block per month + total) ----
 METRICS = [  # key, header, number format, group
     ("spend", "Amount Spent (INR)", "₹#,##0.00", "meta"), ("impr", "Impressions", "#,##0", "meta"),
@@ -460,6 +464,8 @@ def main(brand, lead_dir, meta_dir, out_dir):
     # ---- Data quality log
     mo_counts = crm.groupby("Month").size().reindex(MONTHS).fillna(0).astype(int)
     nonfb = int((crm["FB"] == 0).sum()); nocap = int((crm["Key"] == NOCAP).sum()); notin = int((crm["Key"] == NOTIN).sum())
+    _t = (crm["Modified"] - crm["Created"]).dt.total_seconds() / 3600
+    n_bad_tat = int((_t.isna() | (_t < 0)).sum())
     mnc = int(crm["Status"].eq("Meeting Conducted but NOT QUALIFIED").sum())
     dq = [("#", "Area", "Check", "Result", "Detail"),
           (1, "Source files", "Meta export covers Jul–Oct", "PASS", f"{mfile}; months present: {', '.join(sorted(set(meta['Month']), key=MONTHS.index))}" + ("; export is DAILY — aggregated to months" if daily else "")),
@@ -468,7 +474,9 @@ def main(brand, lead_dir, meta_dir, out_dir):
           (4, "Scope", "FW excluded", "INFO", f"{cst['fw_excluded']} in-scope-brand leads on FW_* campaigns excluded; FW brands ({cst['fw_brand_rows']:,} rows across files) are not part of this report."),
           (5, "Scope", "Leads with Brand '-' (blank)", "WARN", f"{cst['blank_brand']:,} leads across the four files have no brand and are not attributable → excluded."),
           (6, "Spend", "Data_Meta total = raw Meta export total", "PASS" if abs(raw_total - meta['Spend'].sum()) < 0.01 else "FAIL", f"Raw export ₹{raw_total:,.2f}; Data_Meta ₹{meta['Spend'].sum():,.2f}."),
-          (7, "Spend", "Differs from the earlier single-period (1 Jul–30 Oct) export", "INFO", "The monthly export totals differ slightly (Meta restatement) from the earlier 4-month file; the monthly export is used."),
+          (7, "Spend", "Monthly export vs the earlier single-period (1 Jul–30 Oct) export", "PASS" if abs(raw_total - EARLIER[brand]) < 0.01 else "INFO",
+           f"Monthly export ₹{raw_total:,.2f} vs earlier single-period export ₹{EARLIER[brand]:,.2f} (difference ₹{raw_total - EARLIER[brand]:,.2f}"
+           + (" — identical)." if abs(raw_total - EARLIER[brand]) < 0.01 else "; Meta restatement). The monthly export is used.")),
           (8, "Reach", "Reach / Frequency", "WARN", "Unique reach is not additive: N/A at brand / total / Jul–Oct level" + ("; daily export → campaign reach N/A as well." if daily else ".")),
           (9, "Attribution", "Facebook leads with no campaign name", "WARN", f"{nocap:,} Facebook-sourced leads ({nocap/max(paid,1):.1%}) have a blank campaign name and cannot be tied to a campaign; {notin:,} name a campaign that is not in this brand's Meta export."),
           (10, "Attribution", "Non-Facebook lead sources", "INFO", f"{nonfb:,} leads (WhatsApp / Website / Excel / etc.) are in Brand-Wise section C only; no cost metrics."),
@@ -478,7 +486,9 @@ def main(brand, lead_dir, meta_dir, out_dir):
           (14, "Not reported", "Meta-vs-CRM lead match", "INFO", "Meta Leads Center export not supplied → match / unmatched / variance columns removed."),
           (15, "Not reported", "FTD, ad-set, ad level", "INFO", "Out of scope by instruction."),
           (16, "Meta", "Landing page views not supplied", "INFO",
-           "Blank in source (shown N/A, not 0) for: " + (", ".join(m for m in MONTHS if m in set(meta['Month']) and meta[meta['Month'] == m]['LPV'].isna().all()) or "none"))]
+           "Blank in source (shown N/A, not 0) for: " + (", ".join(m for m in MONTHS if m in set(meta['Month']) and meta[meta['Month'] == m]['LPV'].isna().all()) or "none")),
+          (17, "TAT", "Leads not eligible for TAT (missing / negative Modified − Created)", "PASS" if n_bad_tat == 0 else "INFO",
+           f"{n_bad_tat} of {len(crm):,} leads excluded from TAT averages; all other TAT figures use every eligible lead.")]
     for row_ in dq: wsQ.append(list(row_))
     for c in wsQ[1]: c.font = f(True, "FFFFFF"); c.fill = fill(NAVY)
     for i, w in enumerate([5, 16, 46, 9, 130], 1): wsQ.column_dimensions[L(i)].width = w
