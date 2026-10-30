@@ -119,7 +119,8 @@ def add_master_pivot(wb, brand, rows, n, vals):
     ws.merge_cells(start_row=r + 2, start_column=1, end_row=r + 2, end_column=25)
     ws.cell(r + 2, 1).alignment = Alignment(wrap_text=True, vertical="top"); ws.cell(r + 2, 1).font = font(False, "404040", 9)
     ws.row_dimensions[r + 2].height = 40
-    ws.freeze_panes = "B17"
+    # no frozen panes: 16 header rows + the wide first column would leave almost nothing to scroll (the reference format has none either)
+    ws.sheet_view.zoomScale = 85; ws.sheet_view.zoomScaleNormal = 85
     return {"grand": grand, "first": pr + 1, "last": grand - 1, "pivot_ref_last_row": grand}
 
 

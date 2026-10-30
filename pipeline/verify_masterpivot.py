@@ -34,6 +34,8 @@ for f in sys.argv[1:]:
     ref = re.search(r'<location ref="([^"]+)"', z.read("xl/pivotTables/pivotTable1.xml").decode()).group(1)
     sys.path.insert(0, "/home/user/Debraj-first-project/pipeline"); import inject_pivot as ip
     ip.check_pivot_range_is_clean(sx, ref)
+    assert "<pane " not in sx, "Master Pivot must not have frozen panes (blocks scrolling)"
+    assert 'zoomScale="85"' in sx, "Master Pivot zoom should be 85"
     assert ref.endswith(str(last)), (ref, last)
     print(f"{f.split('/')[-1][:30]:30s} pivot ref {ref} | body rows to {last} | clean (no merges/formulas in pivot range)")
 print(f"MASTER PIVOT CELL COMPARISONS: {tot:,} | MISMATCHES: {bad}")
