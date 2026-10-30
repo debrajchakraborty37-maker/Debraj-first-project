@@ -36,3 +36,6 @@ After the user shares all files, do a read-only inventory and give a pre-run che
 - N/A, never a fake 0, when a denominator is 0 or data is not supplied. Never add campaign + ad set + ad totals. Reach is not additive.
 - Test your pipeline on Natuf first: totals/KPIs must tie to the template before running other brands.
 - Report honestly: failed checks, assumptions, and unresolved discrepancies go in the Data Quality Log and in your reply. Do not commit or push unless asked.
+
+## Extra tabs (added on request)
+Every brand workbook also carries `Master Dashboard` (first tab, management view with a Month dropdown, KPI tiles, charts, plain-English highlights) and `Master Pivot` (a real Excel PivotTable on `Pivot_Data` with slicers for Month, Lead attribution, Delivery, Campaign). Build with `pipeline/run_all_brands.py` — it recalculates with LibreOffice and then injects the pivot/slicer parts (`pipeline/inject_pivot.py`), because openpyxl and the LibreOffice step cannot author or keep them. Verify with `pipeline/verify_reports.py` and `pipeline/verify_dashboard.py` before sending anything. Unnamed Facebook leads are placed on campaigns only through a unique Ad Set ID (never by ad-set name).

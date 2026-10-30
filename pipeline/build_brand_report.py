@@ -12,6 +12,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter as L
 from openpyxl.worksheet.formula import ArrayFormula
+import pivot_dashboard as pdash
 
 warnings.filterwarnings("ignore")
 MONTHS = ["Jul", "Aug", "Sep", "Oct"]
@@ -558,7 +559,20 @@ def main(brand, lead_dir, meta_dir, out_dir):
         rr += 1
     wsV.column_dimensions["A"].width = 85
     for cl in "BCDE": wsV.column_dimensions[cl].width = 18
-    wb.move_sheet("All Reports (One Tab)", 0)
+    # ---- Pivot_Data / Master Pivot / Master Dashboard
+    lines = [{"camp": x["camp"], "deliv": x["deliv"], "row": x["row"],
+              "attr": pdash.ATTR_NOCAP if x["camp"] == NOCAP else (pdash.ATTR_NOTIN if x["camp"] == NOTIN else pdash.ATTR_OK)}
+             for x in crow if x["kind"] == "data"]
+    pdi = pdash.add_pivot_data(wb, brand, lines, colof)
+    mpi = pdash.add_master_pivot(wb, brand, lines, pdi["n"])
+    cav = (f"• {nocap / max(paid, 1):.1%} of the brand's Facebook-sourced leads could not be tied to a campaign (no campaign name on the lead and the ad set cannot be mapped) and "
+           f"{notin / max(paid, 1):.1%} sit on campaigns outside the supplied Meta export (spend not available), so cost figures cover the campaign-attributed share of spend only.")
+    pdash.add_dashboard(wb, brand, lines, pdi["n"], mpi, colof, crow_total, {"attr": cav})
+    pdash.add_validation_rows(wsV, mpi, pdi["n"], crow_total, colof)
+    cst["pivot_rows"] = pdi["n"] - 1
+    wb._sheets = [wb[n_] for n_ in ["Master Dashboard", "All Reports (One Tab)", "Month-on-Month", "Master Pivot", "Brand-Wise", "Campaign-Wise",
+                                      "KPI Definitions", "Data Quality Log", "Validation", "Dashboard_Data", "Pivot_Data", "Data_Meta", "Data_CRM"]]
+    wb.active = 0
     os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, f"{brand.replace(' & ', '_and_').replace(' ', '_')}_FinalReport_Jul-Oct2026.xlsx")
     wb.save(out)
