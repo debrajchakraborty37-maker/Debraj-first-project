@@ -1,12 +1,79 @@
 {
   "_note": "Draft mapping. Campaign patterns are guesses from naming style (e.g. 'GenY-Natuf-...'); confirm against the shared export before the first run. Brands are kept strictly separate.",
   "brands": [
-    {"name": "Adhira & Appa Coffee", "aliases": ["Adhira", "Appa Coffee", "Adhira & Appa"], "campaign_patterns": ["adhira", "appa"]},
-    {"name": "Chhota Bheem",         "aliases": ["Chota Bheem", "Chhota Bheem"], "campaign_patterns": ["chhota bheem", "chota bheem"], "exclude_patterns": ["acer"]},
-    {"name": "Acer Chhota Bheem",    "aliases": ["Acer CB", "Acer Chota Bheem"], "campaign_patterns": ["acer"]},
-    {"name": "Bonum Cha",            "aliases": ["Bonum"], "campaign_patterns": ["bonum"]},
-    {"name": "Carlton",              "aliases": [], "campaign_patterns": ["carlton"]},
-    {"name": "Natuf",                "aliases": [], "campaign_patterns": ["natuf"]},
-    {"name": "Shayreen",             "aliases": ["Shayreen"], "campaign_patterns": ["shayreen"]}
+    {
+      "name": "Adhira & Appa Coffee",
+      "aliases": [
+        "Adhira",
+        "Appa Coffee",
+        "Adhira & Appa"
+      ],
+      "campaign_patterns": [
+        "adhira",
+        "appa"
+      ]
+    },
+    {
+      "name": "Chhota Bheem",
+      "aliases": [
+        "Chota Bheem",
+        "Chhota Bheem"
+      ],
+      "campaign_patterns": [
+        "chhota bheem",
+        "chota bheem"
+      ],
+      "exclude_patterns": [
+        "acer"
+      ]
+    },
+    {
+      "name": "Acer Chhota Bheem",
+      "aliases": [
+        "Acer CB",
+        "Acer Chota Bheem"
+      ],
+      "campaign_patterns": [
+        "acer"
+      ]
+    },
+    {
+      "name": "Bonum Cha",
+      "aliases": [
+        "Bonum"
+      ],
+      "campaign_patterns": [
+        "bonum"
+      ]
+    },
+    {
+      "name": "Carlton",
+      "aliases": [],
+      "campaign_patterns": [
+        "carlton"
+      ]
+    },
+    {
+      "name": "Natuf",
+      "aliases": [],
+      "campaign_patterns": [
+        "natuf"
+      ]
+    },
+    {
+      "name": "Shayreen",
+      "aliases": [
+        "Shayreen"
+      ],
+      "campaign_patterns": [
+        "shayreen"
+      ]
+    }
+  ],
+  "excluded_brands": [
+    {
+      "name": "FW",
+      "reason": "Separate brand - not part of these reports. Drop its campaigns/leads; list as 'excluded - FW' in Data Quality Log, never in any brand total."
+    }
   ]
 }

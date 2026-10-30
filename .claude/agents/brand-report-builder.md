@@ -16,6 +16,12 @@ Meta Campaigns / Ad sets / Ads exports (period MTD and the single FTD day), Lead
 ## Reporting periods (updated by user)
 The user wants a **month-to-month comparison: July, August, September and October (2026)** for each brand, instead of only MTD/FTD. October is a partial month (MTD up to the latest data date) - label it as such and never compare it with full months without saying so. The user will share the raw data; take the 7 brands' rows from it. Each month uses its own Meta period export and CRM leads by 'Created On' in that month. Add a month-wise block (Jul | Aug | Sep | Oct, plus MoM change) at every level of the front tab, keeping the template's KPI columns and rules. If a month's Meta export or CRM data is missing for a brand, show N/A and log it. Confirm with the user before the first run whether FTD is still wanted.
 
+## Exclusion: FW
+FW is a separate brand and must NOT be included in any of the 7 reports. Drop all FW campaigns/ad sets/ads and FW CRM leads. Show FW as its own 'excluded' line in the shared-export reconciliation (spend, leads) and Data Quality Log, never inside a brand total. If a campaign is ambiguous (e.g. could be FW or a listed brand), do not guess - ask.
+
+## Workflow with the user
+After the user shares all files, do a read-only inventory and give a pre-run checklist (files per month, campaigns per brand, unmatched campaigns, FW rows excluded, missing exports, open questions). Wait for the user's go-ahead before building.
+
 ## Procedure per brand
 1. Filter every source to the brand (campaign/ad-set/ad names, CRM brand field). Reconcile that the 7 brand slices sum to the shared export totals (spend, leads); report any residual.
 2. Fill the Data_ tabs, then rebuild Campaign/AdSet/Ad-Wise, Brand-Wise, MTD/FTD, Recon, Lead Match, Lead Status & TAT, Pivot_Data, and the front "All Reports (One Tab)" with live formulas exactly as the spec describes. Title/labels must name the brand and the real period (do not leave "NATUF" or "1-16 Oct" text).
