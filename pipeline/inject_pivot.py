@@ -176,6 +176,25 @@ def drawing_xml():
             'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">' + "".join(anchors) + '</xdr:wsDr>')
 
 
+def _cell_to_rc(ref):
+    m = re.match(r"([A-Z]+)(\d+)$", ref); col = 0
+    for ch in m.group(1): col = col * 26 + ord(ch) - 64
+    return int(m.group(2)), col
+
+
+def check_pivot_range_is_clean(sheet_xml, pivot_ref):
+    """Excel cannot refresh a PivotTable over merged cells, and the pivot body must be plain values (no formulas)."""
+    a, b = pivot_ref.split(":"); (r0, c0), (r1, c1) = _cell_to_rc(a), _cell_to_rc(b)
+    for mref in re.findall(r'<mergeCell ref="([^"]+)"', sheet_xml):
+        x, y = mref.split(":"); (mr0, mc0), (mr1, mc1) = _cell_to_rc(x), _cell_to_rc(y)
+        if not (mr1 < r0 or mr0 > r1 or mc1 < c0 or mc0 > c1):
+            raise ValueError(f"merged cells {mref} overlap the pivot range {pivot_ref} — Excel would refuse to refresh the PivotTable")
+    for m in re.finditer(r'<c r="([A-Z]+\d+)"[^>]*>(?:(?!</c>).)*?<f[ >]', sheet_xml, re.S):
+        r, c = _cell_to_rc(m.group(1))
+        if r0 <= r <= r1 and c0 <= c <= c1:
+            raise ValueError(f"formula in pivot range cell {m.group(1)} — the pivot body must be plain values")
+
+
 def next_rid(rels_xml):
     ids = [int(x) for x in re.findall(r'Id="rId(\d+)"', rels_xml)]
     return max(ids + [0]) + 1
@@ -255,6 +274,7 @@ def inject(src, dst):
     files[rels_path] = srels.encode("utf-8")
     sx = g(sheet_path)
     assert "<drawing " not in sx
+    check_pivot_range_is_clean(sx, re.search(r'<location ref="([^"]+)"', pivot).group(1))
     ins = re.search(r"<legacyDrawing|<legacyDrawingHF|<picture|<oleObjects|<controls|<webPublishItems|<tableParts|<extLst|</worksheet>", sx)
     sx = sx[:ins.start()] + f'<drawing r:id="rId{r1 + 1}"/>' + sx[ins.start():]
     sl_ext = f'<ext uri="{{A8765BA9-456A-4dab-B4F3-ACF838C121DE}}" xmlns:x14="{NS_X14}"><x14:slicerList><x14:slicer r:id="rId{r1 + 2}"/></x14:slicerList></ext>'

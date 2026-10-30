@@ -564,7 +564,22 @@ def main(brand, lead_dir, meta_dir, out_dir):
               "attr": pdash.ATTR_NOCAP if x["camp"] == NOCAP else (pdash.ATTR_NOTIN if x["camp"] == NOTIN else pdash.ATTR_OK)}
              for x in crow if x["kind"] == "data"]
     pdi = pdash.add_pivot_data(wb, brand, lines, colof)
-    mpi = pdash.add_master_pivot(wb, brand, lines, pdi["n"])
+    # plain-value pivot body, computed from the same frames as the report (verified against Pivot_Data by verify_reports.py)
+    qset, mset = set(QUAL), set(MEET)
+    cr = crm[crm["FB"] == 1].assign(_q=lambda d_: d_["Status"].isin(qset).astype(int), _m=lambda d_: d_["Status"].isin(mset).astype(int))
+    cg = cr.groupby(["Key", "Month"]).agg(K=("Key", "size"), L=("_q", "sum"), M=("_m", "sum"))
+    mg = meta.set_index(["Campaign name", "Month"])
+    pvals = {}
+    for x in lines:
+        for m_ in MONTHS:
+            v = dict.fromkeys("FGIJKLM", 0.0)
+            if (x["camp"], m_) in cg.index:
+                v.update({k_: float(cg.loc[(x["camp"], m_), k_]) for k_ in "KLM"})
+            if x["attr"] == pdash.ATTR_OK and (x["camp"], m_) in mg.index:
+                r_ = mg.loc[(x["camp"], m_)]
+                v.update(F=float(r_["Spend"]), G=float(r_["Impr"]), I=float(r_["LClicks"]), J=float(r_["MLeads"]))
+            pvals[(x["camp"], pdash.MLAB[m_])] = v
+    mpi = pdash.add_master_pivot(wb, brand, lines, pdi["n"], pvals)
     cav = (f"• {nocap / max(paid, 1):.1%} of the brand's Facebook-sourced leads could not be tied to a campaign (no campaign name on the lead and the ad set cannot be mapped) and "
            f"{notin / max(paid, 1):.1%} sit on campaigns outside the supplied Meta export (spend not available), so cost figures cover the campaign-attributed share of spend only.")
     pdash.add_dashboard(wb, brand, lines, pdi["n"], mpi, colof, crow_total, {"attr": cav})

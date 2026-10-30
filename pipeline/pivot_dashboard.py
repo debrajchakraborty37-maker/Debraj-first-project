@@ -46,7 +46,9 @@ def add_pivot_data(wb, brand, rows, colof, cw_title="Campaign-Wise"):
 def _rng(n, col): return f"Pivot_Data!${col}$2:${col}${n}"
 
 
-def add_master_pivot(wb, brand, rows, n):
+def add_master_pivot(wb, brand, rows, n, vals):
+    """vals[(campaign label, 'Jul 2026')] = dict(F,G,I,J,K,L,M). The pivot body is written as PLAIN VALUES (no formulas, no merged cells):
+    Excel owns this range and rebuilds it from Pivot_Data when the file opens; formulas / merges inside it make the refresh fail."""
     ws = wb.create_sheet("Master Pivot")
     ws.sheet_properties.tabColor = TEAL
     ws.sheet_view.showGridLines = False
@@ -78,36 +80,37 @@ def add_master_pivot(wb, brand, rows, n):
     ws["A16"] = "Brand  ›  Campaign"
     for mi, m in enumerate(MONTHS):
         c0 = 2 + mi * 12
-        ws.cell(15, c0, MLAB[m]); ws.merge_cells(start_row=15, start_column=c0, end_row=15, end_column=c0 + 11)
-        ws.cell(15, c0).alignment = Alignment(horizontal="center")
+        ws.cell(15, c0, MLAB[m]); ws.cell(15, c0).alignment = Alignment(horizontal="left")
         for k, (cap, num, den, fmt) in enumerate(metrics):
             c = ws.cell(16, c0 + k, cap); c.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
     ws.row_dimensions[16].height = 30
     pr = 17
 
-    def cells(r, crit_col, crit_val):
+    def cells(r, camp):
+        """camp = campaign label, or None for the brand / grand-total rows (sum of all lines)"""
         for mi, m in enumerate(MONTHS):
             c0 = 2 + mi * 12
-            crit = f'{_rng(n, "A")},"{MLAB[m]}"' + (f',{_rng(n, crit_col)},{crit_val}' if crit_col else "")
-            sums = {x: f"SUMIFS({_rng(n, x)},{crit})" for x in "FGIJKLM"}
+            if camp is None:
+                sums = {x: sum(vals[(l["camp"], MLAB[m])][x] for l in rows) for x in "FGIJKLM"}
+            else:
+                sums = vals[(camp, MLAB[m])]
             for k, (cap, num, den, fmt) in enumerate(metrics):
                 c = ws.cell(r, c0 + k)
-                if den is None: c.value = "=" + sums[num]
-                else:
-                    c.value = f'=IFERROR(IF({sums[den]}>0,{sums[num]}/{sums[den]},"–"),"–")'
+                if den is None: c.value = sums[num]
+                else: c.value = (sums[num] / sums[den]) if sums[den] > 0 else "–"
                 c.number_format = fmt; c.alignment = Alignment(horizontal="right")
 
     ws.cell(pr, 1, brand)
-    cells(pr, "B", f"$A{pr}")
+    cells(pr, None)
     for ci in range(1, ncol + 1): ws.cell(pr, ci).font = font(True, NAVY, 9); ws.cell(pr, ci).fill = fill(LIGHT)
     r = pr + 1
     for rw in rows:
         ws.cell(r, 1, rw["camp"]).alignment = Alignment(indent=1)
-        cells(r, "C", f"$A{r}")
+        cells(r, rw["camp"])
         for ci in range(1, ncol + 1): ws.cell(r, ci).font = font(False, "000000", 9)
         r += 1
     ws.cell(r, 1, "Grand Total")
-    cells(r, None, None)
+    cells(r, None)
     for ci in range(1, ncol + 1): ws.cell(r, ci).font = font(True, "FFFFFF", 9); ws.cell(r, ci).fill = fill(NAVY)
     grand = r
     ws.cell(r + 2, 1, "Notes: figures are exact sums of the Pivot_Data sheet (one row per campaign line × month, linked to Campaign-Wise). Lead lines "
