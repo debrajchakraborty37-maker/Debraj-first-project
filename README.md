@@ -12,3 +12,6 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 - Agent: `.claude/agents/brand-report-builder.md` · reference format: `templates/FinalReport_TEMPLATE.xlsx` · spec: `config/final_report_spec.md` · brand mapping (draft): `config/brands.json`
 - Brands: Adhira & Appa Coffee, Chhota Bheem, Acer Chhota Bheem, Bonum Cha, Carlton, Natuf, Shayreen -> one workbook each in `outputs/<date>/`.
 - Usage: put the shared raw export in `inbox/<date>/raw/`, then ask Claude to use the `brand-report-builder` agent.
+
+### Running the month-to-month brand reports
+`python3 pipeline/build_brand_report.py "<Brand>" <lead_dir> <meta_dir> <out_dir>` then recalc with `soffice --headless --calc --convert-to xlsx`. Brands: Natuf, Adhira & Appa Coffee, Chhota Bheem, Bonum Cha, Carlton, Shayreen. Output workbooks are git-ignored (business data).
