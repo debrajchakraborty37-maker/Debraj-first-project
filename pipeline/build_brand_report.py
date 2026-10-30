@@ -77,7 +77,7 @@ def load_crm(lead_dir, crm_brands):
     out, stats = [], {}
     for m, name in zip(MONTHS, ["July", "August", "September", "October"]):
         d = pd.read_csv(os.path.join(lead_dir, f"LeadDetails_{name}2026.csv"), low_memory=False,
-                        usecols=["Lead id", "Created On", "Modified On", "Brand", "Lead Source", "Status", "Facebook Campaign Name"])
+                        usecols=["Lead id", "Created On", "Modified On", "Brand", "Lead Source", "Status", "Facebook Campaign Name", "Facebook Ad Set ID", "Facebook Ad Set Name", "Facebook Ad"])
         stats[m] = {"file_rows": len(d)}
         d["File"] = m
         out.append(d)
@@ -85,6 +85,10 @@ def load_crm(lead_dir, crm_brands):
     d["Created"] = pd.to_datetime(d["Created On"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
     d["Modified"] = pd.to_datetime(d["Modified On"], format="%d/%m/%Y %H:%M:%S", errors="coerce")
     d["Month"] = d["Created"].dt.strftime("%b")
+    # Ad Set ID -> campaign evidence from every Facebook lead (all brands) that carries a campaign name.
+    # A Meta ad set belongs to exactly one campaign, so an ID is used only if all leads naming a campaign agree.
+    nm_ = d[(d["Lead Source"] == "Facebook") & ~d["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~d["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
+    stats["idev"] = nm_.groupby("Facebook Ad Set ID")["Facebook Campaign Name"].agg(lambda x: set(x)).to_dict()
     inb = d[d["Brand"].isin(crm_brands)].copy()
     fw = inb["Facebook Campaign Name"].fillna("").str.match(r"(?i)^fw[_ \-|]")
     stats["fw_excluded"] = int(fw.sum())
@@ -261,14 +265,30 @@ def main(brand, lead_dir, meta_dir, out_dir):
     crm, cst = load_crm(lead_dir, crm_brands)
     meta, mfile, raw_total, daily, inds = load_meta(meta_dir, prefix)
     mcamps = sorted(set(meta["Campaign name"]))
-    NOCAP, NOTIN, OTHER = ("Facebook leads – campaign name not captured (blank / '_')",
-                           "Facebook leads – campaign not in this brand's Meta export", "Other lead sources (non-Facebook)")
+    NOCAP = "Facebook leads – campaign not determinable (no campaign name on lead and ad set not uniquely mapped)"
+    NOTIN = "Facebook leads – campaign not in this brand's Meta export"
+    OTHER = "Other lead sources (non-Facebook)"
+    idev = cst["idev"]
     fb = crm["Lead Source"].eq("Facebook")
     cn = crm["Facebook Campaign Name"].fillna("_")
+    named = ~cn.isin(["_", ""])
+    rc = pd.Series([None] * len(crm), index=crm.index, dtype=object)
+    un = fb & ~named
+    rc[un] = crm.loc[un, "Facebook Ad Set ID"].map(lambda i: next(iter(idev[i])) if i in idev and len(idev[i]) == 1 else None)
+    fwad = rc.fillna("").str.match(r"(?i)^fw[_ \-|]")  # ad set belongs to an FW campaign -> FW lead, excluded
+    cst["fw_adset_excluded"] = int(fwad.sum())
+    keep = ~fwad
+    crm, fb, cn, named, rc = crm[keep].reset_index(drop=True), fb[keep].reset_index(drop=True), cn[keep].reset_index(drop=True), named[keep].reset_index(drop=True), rc[keep].reset_index(drop=True)
+    rn = cn.where(named, rc)
+    method = pd.Series("n/a (non-Facebook source)", index=crm.index)
+    method[fb & named] = "Named on lead"
+    method[fb & ~named & rc.notna()] = "Ad Set ID -> campaign (all leads on that ad set name one campaign)"
+    method[fb & ~named & rc.isna()] = "Not determinable"
+    crm["Method"] = method
     key = pd.Series(OTHER, index=crm.index)
-    key[fb & cn.isin(mcamps)] = cn[fb & cn.isin(mcamps)]
-    key[fb & cn.isin(["_", ""])] = NOCAP
-    key[fb & ~cn.isin(mcamps) & ~cn.isin(["_", ""])] = NOTIN
+    key[fb & rn.isin(mcamps)] = rn[fb & rn.isin(mcamps)]
+    key[fb & rn.notna() & ~rn.isin(mcamps)] = NOTIN
+    key[fb & rn.isna()] = NOCAP
     crm["Key"] = key; crm["FB"] = fb.astype(int)
     crm = crm.sort_values("Created").reset_index(drop=True)
     nm, nc = len(meta) + 1, len(crm) + 1
@@ -291,15 +311,16 @@ def main(brand, lead_dir, meta_dir, out_dir):
     # ---- Data_CRM
     wsDC.append(["Lead id", "Created On", "Modified On", "Month", "CRM Brand", "Lead Source", "Status", "CRM campaign (raw)", "Report campaign",
                  "Facebook-sourced (1/0)", "Qualified (1/0)", "Meeting (1/0)", "Contacted (1/0) — Status ≠ New Lead", "Not Contacted (1/0)",
-                 "Blank status (1/0)", "TAT = Modified − Created (hours)", "Valid TAT (1/0)"])
+                 "Blank status (1/0)", "TAT = Modified − Created (hours)", "Valid TAT (1/0)", "Campaign mapping method", "Facebook Ad Set Name", "Facebook Ad"])
     qs = ",".join(f'G{{r}}="{s}"' for s in QUAL); ms = ",".join(f'G{{r}}="{s}"' for s in MEET)
-    cols = ["Lead id", "Created", "Modified", "Month", "Brand", "Lead Source", "Status", "Facebook Campaign Name", "Key", "FB"]
+    cols = ["Lead id", "Created", "Modified", "Month", "Brand", "Lead Source", "Status", "Facebook Campaign Name", "Key", "FB", "Method", "Facebook Ad Set Name", "Facebook Ad"]
     for i, x in enumerate(crm[cols].itertuples(index=False), start=2):
         wsDC.append([x[0], x[1].to_pydatetime() if pd.notna(x[1]) else None, x[2].to_pydatetime() if pd.notna(x[2]) else None,
                      x[3], x[4], x[5], x[6] if isinstance(x[6], str) else "", x[7] if isinstance(x[7], str) else "", x[8], x[9],
                      f"=IF(OR({qs.format(r=i)}),1,0)", f"=IF(OR({ms.format(r=i)}),1,0)",
                      f'=IF(TRIM(G{i})="",0,IF(G{i}="New Lead",0,1))', f'=IF(G{i}="New Lead",1,0)', f'=IF(TRIM(G{i})="",1,0)',
-                     f'=IF(AND(ISNUMBER(B{i}),ISNUMBER(C{i})),(C{i}-B{i})*24,"")', f"=IF(ISNUMBER(P{i}),IF(P{i}>=0,1,0),0)"])
+                     f'=IF(AND(ISNUMBER(B{i}),ISNUMBER(C{i})),(C{i}-B{i})*24,"")', f"=IF(ISNUMBER(P{i}),IF(P{i}>=0,1,0),0)",
+                     x[10], x[11] if isinstance(x[11], str) else "", x[12] if isinstance(x[12], str) else ""])
         wsDC.cell(i, 2).number_format = wsDC.cell(i, 3).number_format = "yyyy-mm-dd hh:mm:ss"
     for ws_ in (wsDM, wsDC):
         for c in ws_[1]:
@@ -312,7 +333,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
     first = {c: g.sort_values("Month", key=lambda s: s.map({m: i for i, m in enumerate(MONTHS)}))["Delivery"].iloc[-1] for c, g in meta.groupby("Campaign name")}
     order = sorted(mcamps, key=lambda c: (-int(bool(tot[c] > 0 or crmc.get(c, 0) > 0)), -tot[c], -crmc.get(c, 0), c))
     crow = []
-    crow.append({"kind": "section", "label": f"CAMPAIGN-WISE — {len(mcamps)} campaigns in the Meta export (incl. zero-activity, grey) + Facebook leads that cannot be tied to a campaign"})
+    crow.append({"kind": "section", "label": f"CAMPAIGN-WISE — {len(mcamps)} campaigns in the Meta export (incl. zero-activity, grey) + Facebook leads whose campaign could not be determined"})
     for cname in order:
         grey = tot[cname] == 0 and crmc.get(cname, 0) == 0 and meta[meta["Campaign name"] == cname]["MLeads"].sum() == 0
         crow.append({"kind": "data", "brand": brand, "camp": cname, "deliv": first[cname], "grey": grey,
@@ -414,7 +435,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
         "DEFINITIONS: Qualified = Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted. Meetings Scheduled = Follow-Up + Meeting Scheduled + Meeting Conducted (distinct leads). Contacted = Status ≠ New Lead; Not Contacted = New Lead. "
         "TAT = Modified On − Created On (lead-modification TAT, NOT first-response time). 'Meeting Conducted but NOT QUALIFIED' counts as Contacted only.",
         f"SCOPE: CRM Brand values included for {brand}: {', '.join(crm_brands)}. Leads on campaigns named FW_* ({cst['fw_excluded']}) and all FW brands are excluded (FW is a separate brand). Meta-vs-CRM lead-by-lead matching is NOT reported (Meta Leads Center export not supplied).",
-        f"COST METRICS: CPL / CPQL / cost per meeting = Meta spend ÷ Facebook-sourced CRM leads ({paid:,} of {len(crm):,} brand leads). Other sources (WhatsApp, Website, Excel…) are shown in Brand-Wise section C without cost. Facebook leads with no campaign name cannot be tied to a campaign: shown on their own lines.",
+        f"COST METRICS: CPL / CPQL / cost per meeting = Meta spend ÷ Facebook-sourced CRM leads ({paid:,} of {len(crm):,} brand leads). Other sources (WhatsApp, Website, Excel…) are shown in Brand-Wise section C without cost. Facebook leads with no campaign name are placed on a campaign through their Ad Set ID (only when every lead carrying that Ad Set ID names the same campaign); the rest are shown on their own line as 'not determinable'.",
         "REACH / FREQUENCY: Meta unique values per campaign per month; not additive, so brand / total / Jul–Oct blocks show N/A" + ("; this account's export is daily, so campaign reach is N/A too." if daily else "."),
         "LEVELS: Campaign totals and Brand totals are alternative views of the same spend / leads — never added together. Ad-set and ad level are intentionally not reported.",
     ]
@@ -463,6 +484,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
 
     # ---- Data quality log
     mo_counts = crm.groupby("Month").size().reindex(MONTHS).fillna(0).astype(int)
+    n_named = int((crm["Method"] == "Named on lead").sum()); n_mapped = int(crm["Method"].str.startswith("Ad Set ID").sum())
     nonfb = int((crm["FB"] == 0).sum()); nocap = int((crm["Key"] == NOCAP).sum()); notin = int((crm["Key"] == NOTIN).sum())
     _t = (crm["Modified"] - crm["Created"]).dt.total_seconds() / 3600
     n_bad_tat = int((_t.isna() | (_t < 0)).sum())
@@ -471,14 +493,18 @@ def main(brand, lead_dir, meta_dir, out_dir):
           (1, "Source files", "Meta export covers Jul–Oct", "PASS", f"{mfile}; months present: {', '.join(sorted(set(meta['Month']), key=MONTHS.index))}" + ("; export is DAILY — aggregated to months" if daily else "")),
           (2, "Source files", "Lead Module files cover each month", "WARN", f"Leads in scope by month: " + ", ".join(f"{m} {mo_counts[m]:,}" for m in MONTHS) + f". October extract ends {cst['maxdate']:%d %b %Y %H:%M} → partial month."),
           (3, "Scope", "CRM Brand values included", "INFO", ", ".join(f"{b} ({int((crm['Brand']==b).sum()):,})" for b in crm_brands)),
-          (4, "Scope", "FW excluded", "INFO", f"{cst['fw_excluded']} in-scope-brand leads on FW_* campaigns excluded; FW brands ({cst['fw_brand_rows']:,} rows across files) are not part of this report."),
+          (4, "Scope", "FW excluded", "INFO", f"{cst['fw_excluded']} in-scope-brand leads on FW_* campaigns (+ {cst['fw_adset_excluded']} via an FW ad set) excluded; FW brands ({cst['fw_brand_rows']:,} rows across files) are not part of this report."),
           (5, "Scope", "Leads with Brand '-' (blank)", "WARN", f"{cst['blank_brand']:,} leads across the four files have no brand and are not attributable → excluded."),
           (6, "Spend", "Data_Meta total = raw Meta export total", "PASS" if abs(raw_total - meta['Spend'].sum()) < 0.01 else "FAIL", f"Raw export ₹{raw_total:,.2f}; Data_Meta ₹{meta['Spend'].sum():,.2f}."),
           (7, "Spend", "Monthly export vs the earlier single-period (1 Jul–30 Oct) export", "PASS" if abs(raw_total - EARLIER[brand]) < 0.01 else "INFO",
            f"Monthly export ₹{raw_total:,.2f} vs earlier single-period export ₹{EARLIER[brand]:,.2f} (difference ₹{raw_total - EARLIER[brand]:,.2f}"
            + (" — identical)." if abs(raw_total - EARLIER[brand]) < 0.01 else "; Meta restatement). The monthly export is used.")),
           (8, "Reach", "Reach / Frequency", "WARN", "Unique reach is not additive: N/A at brand / total / Jul–Oct level" + ("; daily export → campaign reach N/A as well." if daily else ".")),
-          (9, "Attribution", "Facebook leads with no campaign name", "WARN", f"{nocap:,} Facebook-sourced leads ({nocap/max(paid,1):.1%}) have a blank campaign name and cannot be tied to a campaign; {notin:,} name a campaign that is not in this brand's Meta export."),
+          (9, "Attribution", "Campaign attribution of Facebook leads", "WARN" if nocap else "PASS",
+           f"{paid:,} Facebook-sourced leads: {n_named:,} name their campaign on the lead; {n_mapped:,} had no campaign name and were placed on a campaign via their Ad Set ID "
+           f"(an Ad Set ID is used only if every lead carrying it names the same campaign; ad-set NAME matching was rejected as unreliable); {nocap:,} ({nocap/max(paid,1):.1%}) remain not determinable "
+           f"(no ad set, or the ad set appears under more than one campaign name); {notin:,} resolve to a campaign that is not in this brand's Meta export. "
+           f"{cst['fw_adset_excluded']} leads whose ad set belongs to an FW campaign were excluded."),
           (10, "Attribution", "Non-Facebook lead sources", "INFO", f"{nonfb:,} leads (WhatsApp / Website / Excel / etc.) are in Brand-Wise section C only; no cost metrics."),
           (11, "Duplicates", "Duplicate Lead ids", "PASS" if cst['dup_ids'] == 0 else "WARN", f"{cst['dup_ids']} duplicate Lead id(s) in scope."),
           (12, "CRM status", "Status 'Meeting Conducted but NOT QUALIFIED'", "INFO", f"{mnc} leads: counted as Contacted, not as Qualified / Meeting."),
