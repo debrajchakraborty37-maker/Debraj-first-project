@@ -8,10 +8,8 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 - Agent instructions: `.claude/skills/daewoo-daily-analysis/SKILL.md` · targets: `config/targets.json` · report structure: `config/structure.json`
 - Needs: python3 with pandas, numpy, openpyxl, and LibreOffice (`soffice`) for recalculation.
 
-## Brand FinalReport agent (7 brands)
-- Agent: `.claude/agents/brand-report-builder.md` · reference format: `templates/FinalReport_TEMPLATE.xlsx` · spec: `config/final_report_spec.md` · brand mapping (draft): `config/brands.json`
-- Brands: Adhira & Appa Coffee, Chhota Bheem, Acer Chhota Bheem, Bonum Cha, Carlton, Natuf, Shayreen -> one workbook each in `outputs/<date>/`.
-- Usage: put the shared raw export in `inbox/<date>/raw/`, then ask Claude to use the `brand-report-builder` agent.
-
-### Running the month-to-month brand reports
-`python3 pipeline/run_all_brands.py <lead_dir> <meta_dir> <out_dir> [brand ...]` (build → LibreOffice recalculation → real PivotTable + slicers injected by `pipeline/inject_pivot.py`). Independent checks: `pipeline/verify_reports.py` (every cell vs the raw files) and `pipeline/verify_dashboard.py` (dashboard tiles for each month selection). Each workbook has a **Master Dashboard** (month dropdown, KPI tiles, charts, highlights) and a **Master Pivot** (Excel PivotTable with Month / Lead attribution / Delivery / Campaign slicers — open in desktop Excel; slicers do not work in LibreOffice or Google Sheets). Brands: Natuf, Adhira & Appa Coffee, Chhota Bheem, Bonum Cha, Carlton, Shayreen. Output workbooks are git-ignored (business data).
+## Brand month-to-month reports (reusable)
+- **Start here:** skill `.claude/skills/brand-month-report/SKILL.md` · architecture `docs/ARCHITECTURE.md` · decision log `docs/DECISIONS.md` · config `config/report_config.json` (months, brands, rules — edit this, not the code) · agent `.claude/agents/brand-report-builder.md`.
+- **Run:** `pipeline/run_report.sh <lead_dir> <meta_dir> <out_dir> [brand ...]` — build → LibreOffice recalc → real PivotTable + slicers → four independent verifiers → `Brand_Reports.zip`. Needs python3 (pandas, numpy, openpyxl) and LibreOffice. Exits non-zero if any check fails.
+- Each brand workbook: Master Dashboard (Month dropdown, tiles, charts), All Reports (One Tab), Month-on-Month, Master Pivot (open in desktop Excel for slicers), Brand-Wise, Campaign-Wise, KPI Definitions, Data Quality Log, Validation, and data tabs.
+- Raw data (PII), generated workbooks and the reference workbook are git-ignored; supply them again for each run.

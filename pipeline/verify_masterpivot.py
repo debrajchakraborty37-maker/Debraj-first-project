@@ -1,7 +1,9 @@
 """Check each workbook's Master Pivot (plain-value body + injected PivotTable parts) against Pivot_Data."""
-import sys, re, zipfile, warnings, openpyxl, pandas as pd
+import sys, os, re, zipfile, warnings, openpyxl, pandas as pd
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import report_config as rc
 warnings.filterwarnings("ignore")
-MONTHS = ["Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026 (partial)"]
+MONTHS = [rc.MLAB[m_] for m_ in rc.MONTHS]
 tot = bad = 0
 for f in sys.argv[1:]:
     wb = openpyxl.load_workbook(f, data_only=True)
@@ -32,10 +34,11 @@ for f in sys.argv[1:]:
     tgt = re.search(rf'Id="{rid}"[^>]*Target="([^"]+)"|Target="([^"]+)"[^>]*Id="{rid}"', z.read("xl/_rels/workbook.xml.rels").decode())
     sheet = "xl/" + (tgt.group(1) or tgt.group(2)); sx = z.read(sheet).decode()
     ref = re.search(r'<location ref="([^"]+)"', z.read("xl/pivotTables/pivotTable1.xml").decode()).group(1)
-    sys.path.insert(0, "/home/user/Debraj-first-project/pipeline"); import inject_pivot as ip
+    import inject_pivot as ip
     ip.check_pivot_range_is_clean(sx, ref)
     assert "<pane " not in sx, "Master Pivot must not have frozen panes (blocks scrolling)"
     assert 'zoomScale="85"' in sx, "Master Pivot zoom should be 85"
     assert ref.endswith(str(last)), (ref, last)
     print(f"{f.split('/')[-1][:30]:30s} pivot ref {ref} | body rows to {last} | clean (no merges/formulas in pivot range)")
 print(f"MASTER PIVOT CELL COMPARISONS: {tot:,} | MISMATCHES: {bad}")
+sys.exit(1 if bad else 0)

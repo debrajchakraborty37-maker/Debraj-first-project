@@ -16,7 +16,10 @@ NS_R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 NS_X14 = "http://schemas.microsoft.com/office/spreadsheetml/2009/9/main"
 CACHE_ID_X14 = 1618273645
 PIVOT_NAME = "MasterPivot"
-MONTHS = ["Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026 (partial)"]
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import report_config as rc
+MONTHS = [rc.MLAB[m] for m in rc.MONTHS]
 
 NUM_FIELDS = ["Amount Spent (INR)", "Impressions Delivered", "Total Clicks (all)", "Link Clicks (Meta)", "Meta Platform Leads",
               "CRM Leads Count", "Qualified Leads Count", "Meetings Scheduled Count", "Contacted Leads Count", "Not Contacted Leads Count"]
@@ -148,7 +151,7 @@ def slicer_parts(shared, tab_id):
 
 
 def drawing_xml():
-    colw = [58] + [14] * 60   # Master Pivot column widths (characters)
+    colw = [58] + [14] * (12 * rc.N + 12)   # Master Pivot column widths (characters)
     emu = lambda w: (int(w * 7 + 5)) * 9525
     edges = [0]
     for w in colw: edges.append(edges[-1] + emu(w))

@@ -33,3 +33,6 @@ Reports are month-to-month: Jul, Aug, Sep, Oct 2026 (Oct partial/MTD). The templ
 
 ## Scope change (user request): Brand + Campaign level only
 Drop AdSet-Wise, Ad-Wise, Data_AdSets, Data_Ads, ad-set/ad sections and the Ad Set / Ad columns (C, D) in the front tab, orange balance rows, and ad-level Validation/Data-Quality checks. Keep Brand-Wise, Campaign-Wise and all KPI blocks. Notes/Data Quality Log rewritten accordingly.
+
+## Current state (supersedes the sections above where they differ) — see docs/ARCHITECTURE.md and docs/DECISIONS.md
+Reports are month-to-month, Brand + Campaign level only, no FTD, no ad-set/ad tabs, no Meta-vs-CRM match. Undefined cells show "–" (never "N/A" / fake 0). Each workbook adds Master Dashboard, Master Pivot (PivotTable + slicers), Month-on-Month, Pivot_Data, Dashboard_Data. Months, brands and rules live in config/report_config.json.

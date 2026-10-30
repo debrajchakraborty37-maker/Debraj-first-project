@@ -2,16 +2,18 @@
 import sys, glob, os, importlib.util, warnings, math
 import pandas as pd, numpy as np, openpyxl
 warnings.filterwarnings("ignore")
-sys.path.insert(0, "/home/user/Debraj-first-project/pipeline")
-spec = importlib.util.spec_from_file_location("bb", "/home/user/Debraj-first-project/pipeline/build_brand_report.py")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _HERE)
+import report_config as rc
+spec = importlib.util.spec_from_file_location("bb", os.path.join(_HERE, "build_brand_report.py"))
 bb = importlib.util.module_from_spec(spec); spec.loader.exec_module(bb)
 RAW, META, OUT = sys.argv[1:4]
 MONTHS = bb.MONTHS
 QUAL, MEET = bb.QUAL, bb.MEET
 # ---- raw CRM (all rows, no pre-filter) ----
 fr = []
-for m, n in zip(MONTHS, ["July", "August", "September", "October"]):
-    d = pd.read_csv(f"{RAW}/LeadDetails_{n}2026.csv", low_memory=False,
+for m in MONTHS:
+    d = pd.read_csv(f"{RAW}/{rc.lead_file(m)}", low_memory=False,
                     usecols=["Lead id", "Status", "Lead Source", "Brand", "Created On", "Modified On", "Facebook Campaign Name", "Facebook Ad Set ID"])
     d["file_m"] = m
     fr.append(d)
@@ -43,24 +45,25 @@ _n = crm_all[(crm_all["Lead Source"] == "Facebook") & ~crm_all["Facebook Campaig
 EV = {k: set(v) for k, v in _n.groupby("Facebook Ad Set ID")["Facebook Campaign Name"]}
 BR = bb.BRANDS
 for brand, (prefix, cbs) in BR.items():
-    f = glob.glob(f"{OUT}/{brand.replace(' & ', '_and_').replace(' ', '_')}_FinalReport_Jul-Oct2026.xlsx")[0]
+    f = glob.glob(f"{OUT}/{brand.replace(' & ', '_and_').replace(' ', '_')}_FinalReport_{rc.FILE_TAG}.xlsx")[0]
     wb = openpyxl.load_workbook(f, data_only=True)
     # ----- raw meta
     mf = glob.glob(f"{META}/{prefix}*Campaigns*.csv"); assert len(mf) == 1
     mt = pd.read_csv(mf[0]); mt["m"] = pd.to_datetime(mt["Reporting starts"]).dt.strftime("%b")
+    mt = mt[mt["m"].isin(MONTHS)].copy()
     daily = (pd.to_datetime(mt["Reporting ends"]) - pd.to_datetime(mt["Reporting starts"])).dt.days.max() == 0
     mt["ml"] = np.where(mt["Result indicator"] == "actions:leadgen.other", mt["Results"].fillna(0), 0)
     has_lpv = "Landing page views" in mt.columns
     # ----- raw CRM for brand: independent filter
     c = crm_all[crm_all["Brand"].isin(cbs)].copy()
-    fwmask = c["Facebook Campaign Name"].fillna("").str.match(r"(?i)^fw[_ \-|]")
+    fwmask = c["Facebook Campaign Name"].fillna("").str.match("(?i)" + rc.FW_REGEX)
     c = c[~fwmask]
     c["fb"] = c["Lead Source"].eq("Facebook")
     cn0 = c["Facebook Campaign Name"].fillna("_")
     c["rn"] = np.where(c["fb"] & ~cn0.isin(["_", ""]), cn0,
                        c["Facebook Ad Set ID"].map(lambda i: next(iter(EV[i])) if i in EV and len(EV[i]) == 1 else None))
     c.loc[~c["fb"], "rn"] = None
-    fwad = c["fb"] & c["rn"].fillna("").str.match(r"(?i)^fw[_ \-|]")
+    fwad = c["fb"] & c["rn"].fillna("").str.match("(?i)" + rc.FW_REGEX)
     c = c[~fwad].copy()
     c["q"] = c["Status"].isin(QUAL); c["mt"] = c["Status"].isin(MEET)
     c["ct"] = c["Status"].notna() & (c["Status"].fillna("").str.strip() != "") & (c["Status"] != "New Lead")
@@ -101,7 +104,7 @@ for brand, (prefix, cbs) in BR.items():
     wpd = wb["Pivot_Data"]; PD = {}
     for rr in wpd.iter_rows(min_row=2, values_only=True):
         if rr[0] is not None: PD[(rr[2], rr[0])] = rr
-    MLAB = {"Jul": "Jul 2026", "Aug": "Aug 2026", "Sep": "Sep 2026", "Oct": "Oct 2026 (partial)"}
+    MLAB = rc.MLAB
     PDKEYS = ["spend", "impr", "clicks", "lclicks", "mleads", "crm", "qual", "meet", "cont", "ncont"]
     seen_pd = set()
     def check_row(ws, r, tag, mask_crm, mask_meta, with_meta, brand_level=False, pname=None):
@@ -170,12 +173,13 @@ for brand, (prefix, cbs) in BR.items():
     # ---- Month-on-Month vs Brand-Wise A
     wm = wb["Month-on-Month"]; ra = rows["Brand total (Meta + Facebook-sourced CRM)"]
     for j, k in enumerate(bb.KEYS):
-        for bi in range(5):
+        for bi in range(len(MONTHS) + 1):
             cmp(f"{brand}|MoM|{k}|{bi}", wm.cell(5 + j, 2 + bi).value, wbw[f"{bb.colof(bi, k)}{ra}"].value)
     # ---- raw-total reconciliations
     sp_raw = mt["Amount spent (INR)"].sum()
-    cmp(f"{brand}|raw spend vs report total", wb["Campaign-Wise"][f"{bb.colof(4, 'spend')}{total_row}"].value, sp_raw, 1e-9)
+    cmp(f"{brand}|raw spend vs report total", wb["Campaign-Wise"][f"{bb.colof(len(MONTHS), 'spend')}{total_row}"].value, sp_raw, 1e-9)
     print(f"{brand:22s} crm in scope {len(c):6d} (fb {int(c['fb'].sum()):6d}) | FW removed {int(fwmask.sum())+int(fwad.sum()):3d} (name {int(fwmask.sum())}+adset {int(fwad.sum())}) | undeterminable {int((c.key=='NOCAP').sum())} | notin {int((c.key=='NOTIN').sum())} | meta spend {sp_raw:14,.2f} | campaigns {len(camps)}")
 
 print(f"\nCELL COMPARISONS: {checked:,} | MISMATCHES: {len(bad)}")
 for b in bad[:40]: print(b)
+sys.exit(1 if bad else 0)

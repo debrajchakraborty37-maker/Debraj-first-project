@@ -1,0 +1,25 @@
+{
+  "_readme": "Single source of truth for the month-to-month brand report (pipeline/build_brand_report.py and all verifiers). To run a new period, edit 'months' (and 'year'); to add a brand, add an entry under 'brands'. No code change needed.",
+  "year": 2026,
+  "months": [
+    {"key": "Jul", "name": "July"},
+    {"key": "Aug", "name": "August"},
+    {"key": "Sep", "name": "September"},
+    {"key": "Oct", "name": "October", "partial": true}
+  ],
+  "earlier_meta_total_period": "Jul–Oct 2026",
+  "lead_file_pattern": "LeadDetails_{name}{year}.csv",
+  "qualified_statuses": ["Qualified", "Follow-Up", "Details Shared", "Meeting Scheduled", "Meeting Conducted"],
+  "meeting_statuses": ["Follow-Up", "Meeting Scheduled", "Meeting Conducted"],
+  "fw_exclusion_regex": "^fw[_ \\-|]",
+  "meta_leads_indicator": "actions:leadgen.other",
+  "brands": {
+    "Natuf": {"meta_file_prefix": "Natuf-x-Gen-Y", "crm_brand_values": ["Natuf", "In House Natuf", "Natuf_MF"], "earlier_meta_total": 6433014.17},
+    "Adhira & Appa Coffee": {"meta_file_prefix": "Inhouse---Adhira", "crm_brand_values": ["Adhira & Appa Coffee", "Adhira & Appa Coffee MF", "Adhira & Appa Coffee FOFO"], "earlier_meta_total": 4738868.01},
+    "Chhota Bheem": {"meta_file_prefix": "Shoot-Order---Chhota", "crm_brand_values": ["Chhota Bheem"], "earlier_meta_total": 1408986.18},
+    "Bonum Cha": {"meta_file_prefix": "In-House-Bonum", "crm_brand_values": ["Bonum Cha", "Bonum Cha MF"], "earlier_meta_total": 1215440.55},
+    "Carlton": {"meta_file_prefix": "Kustard-__-Carlton", "crm_brand_values": ["Carlon Spa", "Carlton Salon", "Carlton Wellness Center", "In House Carlton Salon", "In House Carlton Wellness", "Carlton"], "earlier_meta_total": 6930856.33},
+    "Shayreen": {"meta_file_prefix": "In-House-SHAYREEN", "crm_brand_values": ["Shayreen by Natuf"], "earlier_meta_total": 747703.77},
+    "Acer Chhota Bheem": {"meta_file_prefix": "Inhouse-__-Acer", "crm_brand_values": ["Acer Electric Bikes", "Acer TK"], "earlier_meta_total": 1814047.88}
+  }
+}
