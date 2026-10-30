@@ -14,8 +14,8 @@ months = ["Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026 (partial)"]
 def agg(sub):
     sp, ml, crm, q, mt, ct = (sub["Amount Spent (INR)"].sum(), sub["Meta Platform Leads"].sum(), sub["CRM Leads Count"].sum(), sub["Qualified Leads Count"].sum(),
                               sub["Meetings Scheduled Count"].sum(), sub["Contacted Leads Count"].sum())
-    div = lambda a, b: a / b if b > 0 else "N/A"
-    return dict(sp=sp, ml=ml, crm=crm, q=q, mt=mt, cpl=div(sp, crm) if sp > 0 else "N/A", cpq=div(sp, q) if sp > 0 else "N/A", cpm=div(sp, mt) if sp > 0 else "N/A",
+    div = lambda a, b: a / b if b > 0 else "–"
+    return dict(sp=sp, ml=ml, crm=crm, q=q, mt=mt, cpl=div(sp, crm) if sp > 0 else "–", cpq=div(sp, q) if sp > 0 else "–", cpm=div(sp, mt) if sp > 0 else "–",
                 qr=div(q, crm), cr=div(ct, crm))
 cmp("selection cell", d["C4"].value, sel)
 cur = df if sel == "All months" else df[df["Month"] == sel]
@@ -28,7 +28,7 @@ if idx >= 2:
     p = agg(df[df["Month"] == months[idx - 2]])
     for k, c, r in tiles:
         a, b = e[k], p[k]
-        want = "vs previous month: n/a" if (isinstance(a, str) or isinstance(b, str) or b == 0) else (("▲ " if a >= b else "▼ ") + f"{abs(a / b - 1):.1%}" + " vs previous month")
+        want = "vs previous month: –" if (isinstance(a, str) or isinstance(b, str) or b == 0) else (("▲ " if a >= b else "▼ ") + f"{abs(a / b - 1):.1%}" + " vs previous month")
         cmp(f"sub {k}", d.cell(r + 1, c).value, want)
 elif idx == 0:
     for k, c, r in tiles: cmp(f"sub {k}", d.cell(r + 1, c).value, "Jul–Oct total")

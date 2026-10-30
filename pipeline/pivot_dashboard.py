@@ -32,7 +32,7 @@ def add_pivot_data(wb, brand, rows, colof, cw_title="Campaign-Wise"):
     r = 2
     for rw in rows:
         for bi, m in enumerate(MONTHS):
-            ws.cell(r, 1, MLAB[m]); ws.cell(r, 2, brand); ws.cell(r, 3, rw["camp"]); ws.cell(r, 4, rw["deliv"] or "n/a"); ws.cell(r, 5, rw["attr"])
+            ws.cell(r, 1, MLAB[m]); ws.cell(r, 2, brand); ws.cell(r, 3, rw["camp"]); ws.cell(r, 4, rw["deliv"] or "No Meta delivery"); ws.cell(r, 5, rw["attr"])
             for j, k in enumerate(PD_SRC):
                 src = f"'{cw_title}'!{colof(bi, k)}{rw['row']}"
                 ws.cell(r, 6 + j, f"=IF(ISNUMBER({src}),{src},0)")
@@ -156,18 +156,18 @@ def add_dashboard(wb, brand, rows, n, mp, colof, cw_total_row, notes):
         wd.cell(13, j, f'=IF($B$4<=1,"",INDEX({cl}$8:{cl}$11,$B$4-1))')
     for r in range(8, 14):
         sp, crm, q, mt, ct, ml = (f"B{r}", f"F{r}", f"G{r}", f"H{r}", f"I{r}", f"E{r}")
-        wd.cell(r, 10, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0,{sp}>0),{sp}/{crm},"N/A"),"N/A")')
-        wd.cell(r, 11, f'=IFERROR(IF(AND(ISNUMBER({q}),{q}>0,{sp}>0),{sp}/{q},"N/A"),"N/A")')
-        wd.cell(r, 12, f'=IFERROR(IF(AND(ISNUMBER({mt}),{mt}>0,{sp}>0),{sp}/{mt},"N/A"),"N/A")')
-        wd.cell(r, 13, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0),{q}/{crm},"N/A"),"N/A")')
-        wd.cell(r, 14, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0),{ct}/{crm},"N/A"),"N/A")')
-        wd.cell(r, 15, f'=IFERROR(IF(AND(ISNUMBER({ml}),{ml}>0,{sp}>0),{sp}/{ml},"N/A"),"N/A")')
+        wd.cell(r, 10, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0,{sp}>0),{sp}/{crm},"–"),"–")')
+        wd.cell(r, 11, f'=IFERROR(IF(AND(ISNUMBER({q}),{q}>0,{sp}>0),{sp}/{q},"–"),"–")')
+        wd.cell(r, 12, f'=IFERROR(IF(AND(ISNUMBER({mt}),{mt}>0,{sp}>0),{sp}/{mt},"–"),"–")')
+        wd.cell(r, 13, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0),{q}/{crm},"–"),"–")')
+        wd.cell(r, 14, f'=IFERROR(IF(AND(ISNUMBER({crm}),{crm}>0),{ct}/{crm},"–"),"–")')
+        wd.cell(r, 15, f'=IFERROR(IF(AND(ISNUMBER({ml}),{ml}>0,{sp}>0),{sp}/{ml},"–"),"–")')
     wd.cell(14, 1, "Jul–Oct total")
     for j in range(2, 10): wd.cell(14, j, f"=SUM({L(j)}8:{L(j)}11)")
     sp, crm, q, mt, ct, ml = "B14", "F14", "G14", "H14", "I14", "E14"
-    wd.cell(14, 10, f'=IFERROR(IF(AND({crm}>0,{sp}>0),{sp}/{crm},"N/A"),"N/A")'); wd.cell(14, 11, f'=IFERROR(IF(AND({q}>0,{sp}>0),{sp}/{q},"N/A"),"N/A")')
-    wd.cell(14, 12, f'=IFERROR(IF(AND({mt}>0,{sp}>0),{sp}/{mt},"N/A"),"N/A")'); wd.cell(14, 13, f'=IFERROR(IF({crm}>0,{q}/{crm},"N/A"),"N/A")')
-    wd.cell(14, 14, f'=IFERROR(IF({crm}>0,{ct}/{crm},"N/A"),"N/A")'); wd.cell(14, 15, f'=IFERROR(IF(AND({ml}>0,{sp}>0),{sp}/{ml},"N/A"),"N/A")')
+    wd.cell(14, 10, f'=IFERROR(IF(AND({crm}>0,{sp}>0),{sp}/{crm},"–"),"–")'); wd.cell(14, 11, f'=IFERROR(IF(AND({q}>0,{sp}>0),{sp}/{q},"–"),"–")')
+    wd.cell(14, 12, f'=IFERROR(IF(AND({mt}>0,{sp}>0),{sp}/{mt},"–"),"–")'); wd.cell(14, 13, f'=IFERROR(IF({crm}>0,{q}/{crm},"–"),"–")')
+    wd.cell(14, 14, f'=IFERROR(IF({crm}>0,{ct}/{crm},"–"),"–")'); wd.cell(14, 15, f'=IFERROR(IF(AND({ml}>0,{sp}>0),{sp}/{ml},"–"),"–")')
     # campaign helper (Meta-export campaigns only)
     camp = [r_ for r_ in rows if r_["attr"] == ATTR_OK]
     h0 = 18
@@ -250,9 +250,9 @@ def add_dashboard(wb, brand, rows, n, mp, colof, cw_total_row, notes):
         v.number_format = fmt; v.font = font(True, NAVY, 20); v.alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[row0 + 1].height = 34
         s = ws.cell(row0 + 2, c0, f'=IF(Dashboard_Data!$B$4<=1,IF(Dashboard_Data!$B$4=0,"Jul–Oct total","First month of the period"),'
-                                   f'IFERROR(IF(OR(NOT(ISNUMBER(Dashboard_Data!{dcol}12)),NOT(ISNUMBER(Dashboard_Data!{dcol}13))),"vs previous month: n/a",'
-                                   f'IF(Dashboard_Data!{dcol}13=0,"vs previous month: n/a",'
-                                   f'IF(Dashboard_Data!{dcol}12>=Dashboard_Data!{dcol}13,"▲ ","▼ ")&TEXT(ABS(Dashboard_Data!{dcol}12/Dashboard_Data!{dcol}13-1),"0.0%")&" vs previous month")),"vs previous month: n/a"))')
+                                   f'IFERROR(IF(OR(NOT(ISNUMBER(Dashboard_Data!{dcol}12)),NOT(ISNUMBER(Dashboard_Data!{dcol}13))),"vs previous month: –",'
+                                   f'IF(Dashboard_Data!{dcol}13=0,"vs previous month: –",'
+                                   f'IF(Dashboard_Data!{dcol}12>=Dashboard_Data!{dcol}13,"▲ ","▼ ")&TEXT(ABS(Dashboard_Data!{dcol}12/Dashboard_Data!{dcol}13-1),"0.0%")&" vs previous month")),"vs previous month: –"))')
         s.font = font(True, GREY, 9); s.alignment = Alignment(horizontal="center")
         d = ws.cell(row0 + 3, c0, sub); d.font = font(False, GREY, 8); d.alignment = Alignment(horizontal="center")
         # colour the change line
@@ -339,7 +339,7 @@ def add_dashboard(wb, brand, rows, n, mp, colof, cw_total_row, notes):
     cav = [
         "• Spend and form-leads come from Meta Ads Manager; CRM leads, qualified leads and meetings come from the Lead Module (leads counted in the month they were created).",
         "• Qualified = lead has reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Meetings = Follow-Up, Meeting Scheduled or Meeting Conducted.",
-        "• Cost per lead / qualified lead / meeting = Meta spend ÷ the count. “N/A” means it cannot be calculated (for example no spend that month) — it is never shown as zero.",
+        "• Cost per lead / qualified lead / meeting = Meta spend ÷ the count. A dash (–) means it cannot be calculated (for example no spend that month) — it is never shown as zero.",
         f"• October 2026 is a partial month (data to 30 Oct), so compare it with full months carefully. FW is a separate brand and is excluded.",
         notes.get("attr", ""),
         "• Detailed tabs: Master Pivot (interactive, with slicers), Month-on-Month, Brand-Wise, Campaign-Wise, Data Quality Log and Validation.",

@@ -24,19 +24,19 @@ print("file-month vs created-month mismatches:", int((crm_all["m"] != crm_all["f
 print("total CRM rows:", len(crm_all), "| dup Lead id overall:", int(crm_all["Lead id"].duplicated().sum()))
 crm_all["tat"] = (crm_all["mo"] - crm_all["cr"]).dt.total_seconds() / 3600
 
-def isn(x): return isinstance(x, str) and x == "N/A"
+def isn(x): return isinstance(x, str) and x == "–"
 bad = []; checked = 0
 def cmp(tag, got, exp, tol=1e-6):
     global checked
     checked += 1
-    if exp is None or (isinstance(exp, float) and (math.isnan(exp) or math.isinf(exp))): exp = "N/A"
+    if exp is None or (isinstance(exp, float) and (math.isnan(exp) or math.isinf(exp))): exp = "–"
     if isinstance(exp, str) or isinstance(got, str) or got is None:
         if not (isinstance(exp, str) and isinstance(got, str) and exp == got): bad.append((tag, got, exp))
         return
     if abs(got - exp) > tol * max(1, abs(exp)): bad.append((tag, got, exp))
 
 def ratio(n, dn, mult=1):
-    return "N/A" if (isinstance(n, str) or isinstance(dn, str) or dn is None or dn <= 0) else n / dn * mult
+    return "–" if (isinstance(n, str) or isinstance(dn, str) or dn is None or dn <= 0) else n / dn * mult
 
 # independent ad-set evidence: Ad Set ID -> set of campaign names on leads that name a campaign (all brands)
 _n = crm_all[(crm_all["Lead Source"] == "Facebook") & ~crm_all["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~crm_all["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
@@ -79,11 +79,11 @@ for brand, (prefix, cbs) in BR.items():
             o["spend"] = mm["Amount spent (INR)"].sum(); o["impr"] = mm["Impressions"].sum()
             o["clicks"] = mm["Clicks (all)"].sum(); o["lclicks"] = mm["Link clicks"].sum()
             o["mleads"] = mm["ml"].sum()
-            o["lpv"] = (mm["Landing page views"].sum() if has_lpv and mm["Landing page views"].notna().any() else "N/A")
-            o["reach"] = (mm["Reach"].sum() if (reach_ok and not daily and month is not None and mm["Reach"].notna().any()) else "N/A")
+            o["lpv"] = (mm["Landing page views"].sum() if has_lpv and mm["Landing page views"].notna().any() else "–")
+            o["reach"] = (mm["Reach"].sum() if (reach_ok and not daily and month is not None and mm["Reach"].notna().any()) else "–")
         else:
-            for k in ("spend", "impr", "clicks", "lclicks", "mleads", "lpv", "reach"): o[k] = "N/A"
-        o["freq"] = ratio(o["impr"], o["reach"]) if o["reach"] != "N/A" else "N/A"
+            for k in ("spend", "impr", "clicks", "lclicks", "mleads", "lpv", "reach"): o[k] = "–"
+        o["freq"] = ratio(o["impr"], o["reach"]) if o["reach"] != "–" else "–"
         o["ctr"] = ratio(o["clicks"], o["impr"]); o["lctr"] = ratio(o["lclicks"], o["impr"])
         o["cpc"] = ratio(o["spend"], o["clicks"]); o["lcpc"] = ratio(o["spend"], o["lclicks"])
         o["cpm"] = ratio(o["spend"], o["impr"], 1000); o["cplm"] = ratio(o["spend"], o["mleads"])
@@ -94,8 +94,8 @@ for brand, (prefix, cbs) in BR.items():
         o["cplc"] = ratio(o["spend"], o["crm"]); o["cpql"] = ratio(o["spend"], o["qual"]); o["cpmt"] = ratio(o["spend"], o["meet"])
         ok = cc[cc["ok"]]
         o["elig"] = len(ok)
-        o["atat"] = ok["tat"].mean() if len(ok) else "N/A"
-        o["mtat"] = ok["tat"].median() if len(ok) else "N/A"
+        o["atat"] = ok["tat"].mean() if len(ok) else "–"
+        o["mtat"] = ok["tat"].median() if len(ok) else "–"
         return o
 
     wpd = wb["Pivot_Data"]; PD = {}

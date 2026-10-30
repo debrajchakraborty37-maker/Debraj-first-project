@@ -108,7 +108,7 @@ def load_meta(meta_dir, prefix):
     assert len(fs) == 1, fs
     d = pd.read_csv(fs[0])
     d["Month"] = pd.to_datetime(d["Reporting starts"]).dt.strftime("%b")
-    if "Landing page views" not in d.columns: d["Landing page views"] = float("nan")  # not supplied -> N/A
+    if "Landing page views" not in d.columns: d["Landing page views"] = float("nan")  # not supplied -> –
     daily = (pd.to_datetime(d["Reporting ends"]) - pd.to_datetime(d["Reporting starts"])).dt.days.max() == 0
     raw_total = d["Amount spent (INR)"].sum()
     ind = d["Result indicator"].fillna("")
@@ -143,24 +143,24 @@ def build_formula(ctx, key, bi, row, spec):
     """spec: dict(meta=None|[(col,crit)], crm=[(col,crit)] , kind='data'|'total', first, last)"""
     c = lambda k, b=bi: f"{colof(b, k)}{row}"
     month = MONTHS[bi] if bi < 4 else None
-    ratio = lambda num, den, mult="": f'=IFERROR(IF({den}>0,{num}/{den}{mult},"N/A"),"N/A")'
+    ratio = lambda num, den, mult="": f'=IFERROR(IF({den}>0,{num}/{den}{mult},"–"),"–")'
     if key in ("spend", "impr", "clicks", "lclicks", "lpv", "mleads", "reach"):
         if spec["meta"] is None or key == "reach" and (spec["kind"] == "total" or bi == 4 or spec.get("noreach")):
-            return "N/A"
+            return "–"
         if bi == 4:
             rng_ = ",".join(f"{colof(b, key)}{row}" for b in range(4))
-            return f'=IF(COUNT({rng_})=0,"N/A",SUM({rng_}))' if key == "lpv" else "=SUM(" + rng_ + ")"
+            return f'=IF(COUNT({rng_})=0,"–",SUM({rng_}))' if key == "lpv" else "=SUM(" + rng_ + ")"
         if spec["kind"] == "total":
             rng_ = f"{colof(bi, key)}{spec['first']}:{colof(bi, key)}{spec['last']}"
-            return f'=IF(COUNT({rng_})=0,"N/A",SUM({rng_}))' if key == "lpv" else f"=SUM({rng_})"
+            return f'=IF(COUNT({rng_})=0,"–",SUM({rng_}))' if key == "lpv" else f"=SUM({rng_})"
         crit = [(mrng(ctx, "A"), f'"{month}"')] + [(mrng(ctx, x), y) for x, y in spec["meta"]]
         cs = ",".join(f"{a},{b}" for a, b in crit)
         s = f"SUMIFS({mrng(ctx, MCOL[key])},{cs})"
         if key in ("reach", "lpv"):
-            return f'=IF(COUNTIFS({cs},{mrng(ctx, MCOL[key])},"<>")=0,"N/A",{s})'
+            return f'=IF(COUNTIFS({cs},{mrng(ctx, MCOL[key])},"<>")=0,"–",{s})'
         return "=" + s
     if key == "freq":
-        return f'=IF(ISNUMBER({c("reach")}),IF({c("reach")}>0,{c("impr")}/{c("reach")},"N/A"),"N/A")'
+        return f'=IF(ISNUMBER({c("reach")}),IF({c("reach")}>0,{c("impr")}/{c("reach")},"–"),"–")'
     if key == "ctr": return ratio(c("clicks"), c("impr"))
     if key == "lctr": return ratio(c("lclicks"), c("impr"))
     if key == "cpc": return ratio(c("spend"), c("clicks"))
@@ -189,9 +189,9 @@ def build_formula(ctx, key, bi, row, spec):
         crit.append((crng(ctx, "Q"), "1"))
         if key == "atat":
             cs = ",".join(f"{a},{b}" for a, b in crit)
-            return f'=IFERROR(IF({c("elig")}>0,SUMIFS({crng(ctx, "P")},{cs})/{c("elig")},"N/A"),"N/A")'
+            return f'=IFERROR(IF({c("elig")}>0,SUMIFS({crng(ctx, "P")},{cs})/{c("elig")},"–"),"–")'
         cond = "*".join(f"({a}={b})" for a, b in crit if b != '"<>"')
-        return ("ARRAY", f'=IFERROR(MEDIAN(IF({cond},{crng(ctx, "P")})),"N/A")')
+        return ("ARRAY", f'=IFERROR(MEDIAN(IF({cond},{crng(ctx, "P")})),"–")')
     raise KeyError(key)
 
 
@@ -281,7 +281,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
     keep = ~fwad
     crm, fb, cn, named, rc = crm[keep].reset_index(drop=True), fb[keep].reset_index(drop=True), cn[keep].reset_index(drop=True), named[keep].reset_index(drop=True), rc[keep].reset_index(drop=True)
     rn = cn.where(named, rc)
-    method = pd.Series("n/a (non-Facebook source)", index=crm.index)
+    method = pd.Series("Non-Facebook source (no campaign needed)", index=crm.index)
     method[fb & named] = "Named on lead"
     method[fb & ~named & rc.notna()] = "Ad Set ID -> campaign (all leads on that ad set name one campaign)"
     method[fb & ~named & rc.isna()] = "Not determinable"
@@ -351,12 +351,12 @@ def main(brand, lead_dir, meta_dir, out_dir):
             if rw["spec"][key_]: rw["spec"][key_] = [(a, b.replace("{r}", str(r))) for a, b in rw["spec"][key_]]
         r += 1
     firstrow, lastrow = r0 + 1, r - 1
-    crow.append({"kind": "total", "brand": f"TOTAL — ALL CAMPAIGNS ({brand})", "camp": "Facebook-sourced CRM leads only; Reach/Frequency not additive → N/A",
+    crow.append({"kind": "total", "brand": f"TOTAL — ALL CAMPAIGNS ({brand})", "camp": "Facebook-sourced CRM leads only; Reach/Frequency not additive → –",
                  "spec": {"kind": "total", "meta": [], "crm": [("J", "1")], "first": firstrow, "last": lastrow}})
     header(wsC, f"CAMPAIGN-WISE PERFORMANCE — {brand.upper()}  ·  MONTH-TO-MONTH (JUL–OCT 2026)",
            "Brand → Campaign. Meta spend & delivery metrics from the monthly Meta campaign export; CRM metrics = Facebook-sourced CRM leads by 'Created On' month (Lead Module). "
            "CRM leads are tied to a Meta campaign via the 'Facebook Campaign Name' on the lead — leads with no campaign name are shown on their own line. "
-           "Cost metrics (CPL, CPQL, cost per meeting) = Meta spend ÷ Facebook-sourced CRM leads. October is partial (data to 30 Oct). N/A = cannot be calculated / not supplied.")
+           "Cost metrics (CPL, CPQL, cost per meeting) = Meta spend ÷ Facebook-sourced CRM leads. October is partial (data to 30 Oct). A dash (–) = cannot be calculated or not supplied by the source (never a fake zero).")
     write_grid(wsC, ctx, crow, r0)
     crow_total = [x for x in crow if x["kind"] == "total"][0]["row"]
 
@@ -365,12 +365,12 @@ def main(brand, lead_dir, meta_dir, out_dir):
     brow.append({"kind": "data", "brand": brand, "camp": "Brand total (Meta + Facebook-sourced CRM)", "deliv": "",
                  "spec": {"kind": "data", "meta": [], "crm": [("J", "1")], "noreach": True}})
     brow.append({"kind": "blank"})
-    brow.append({"kind": "section", "label": "B · CRM BRAND SPLIT — Facebook-sourced leads by CRM 'Brand' value (Meta spend cannot be split by CRM brand → cost metrics N/A)"})
+    brow.append({"kind": "section", "label": "B · CRM BRAND SPLIT — Facebook-sourced leads by CRM 'Brand' value (Meta spend cannot be split by CRM brand → cost metrics –)"})
     for cb in crm_brands:
         brow.append({"kind": "data", "brand": brand, "camp": cb, "deliv": "", "grey": int((crm["Brand"] == cb).sum()) == 0,
                      "spec": {"kind": "data", "meta": None, "crm": [("E", "$B{r}"), ("J", "1")]}})
     brow.append({"kind": "blank"})
-    brow.append({"kind": "section", "label": "C · ALL LEAD SOURCES (CRM only — includes WhatsApp / Website / Excel / Zoho etc.; Meta cost metrics N/A)"})
+    brow.append({"kind": "section", "label": "C · ALL LEAD SOURCES (CRM only — includes WhatsApp / Website / Excel / Zoho etc.; Meta cost metrics –)"})
     brow.append({"kind": "data", "brand": brand, "camp": "All CRM leads — all sources", "deliv": "", "spec": {"kind": "data", "meta": None, "crm": [(crng_a, "\"<>\"") for crng_a in ["A"]]}})
     brow.append({"kind": "data", "brand": brand, "camp": "   of which Facebook-sourced", "deliv": "", "spec": {"kind": "data", "meta": None, "crm": [("J", "1")]}})
     brow.append({"kind": "data", "brand": brand, "camp": "   of which other sources (non-Facebook)", "deliv": "", "spec": {"kind": "data", "meta": None, "crm": [("J", "0")]}})
@@ -382,14 +382,14 @@ def main(brand, lead_dir, meta_dir, out_dir):
     # crm criterion column 'A' for 'all' row must resolve to a column letter -> handled in build (col letter); fine
     header(wsB, f"BRAND-WISE PERFORMANCE — {brand.upper()}  ·  MONTH-TO-MONTH (JUL–OCT 2026)",
            "Sections are alternative views of the same leads and are never added together. A = brand total with valid cost metrics; B = split by CRM Brand value; C = all lead sources. "
-           "Reach / Frequency are not additive across campaigns → N/A at brand level. October is partial (data to 30 Oct).")
+           "Reach / Frequency are not additive across campaigns → – at brand level. October is partial (data to 30 Oct).")
     write_grid(wsB, ctx, brow, 6)
     brand_row = brow[1]["row"]
 
     # ---- front tab: mirror of Brand-Wise and Campaign-Wise
     header(wsF, f"ALL REPORTS IN ONE TAB — {brand.upper()}  ·  MONTH-TO-MONTH JUL · AUG · SEP · OCT 2026  ·  Brand → Campaign",
            "One column grid: each row is one entity; Meta + CRM KPIs per month with a Jul–Oct total block. Every cell is a live link to the detailed tab named in the section band. "
-           "Brand and Campaign views are alternative views of the same activity — never add them together. Grey row = zero-activity campaign in source. October is partial (to 30 Oct). N/A = cannot be calculated / not supplied.")
+           "Brand and Campaign views are alternative views of the same activity — never add them together. Grey row = zero-activity campaign in source. October is partial (to 30 Oct). A dash (–) = cannot be calculated or not supplied by the source (never a fake zero).")
     ncol = FIX + len(BLOCKS) * NM
     r = 6
     def mirror(src_ws, src_first, src_last, label):
@@ -437,7 +437,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
         "TAT = Modified On − Created On (lead-modification TAT, NOT first-response time). 'Meeting Conducted but NOT QUALIFIED' counts as Contacted only.",
         f"SCOPE: CRM Brand values included for {brand}: {', '.join(crm_brands)}. Leads on campaigns named FW_* ({cst['fw_excluded']}) and all FW brands are excluded (FW is a separate brand). Meta-vs-CRM lead-by-lead matching is NOT reported (Meta Leads Center export not supplied).",
         f"COST METRICS: CPL / CPQL / cost per meeting = Meta spend ÷ Facebook-sourced CRM leads ({paid:,} of {len(crm):,} brand leads). Other sources (WhatsApp, Website, Excel…) are shown in Brand-Wise section C without cost. Facebook leads with no campaign name are placed on a campaign through their Ad Set ID (only when every lead carrying that Ad Set ID names the same campaign); the rest are shown on their own line as 'not determinable'.",
-        "REACH / FREQUENCY: Meta unique values per campaign per month; not additive, so brand / total / Jul–Oct blocks show N/A" + ("; this account's export is daily, so campaign reach is N/A too." if daily else "."),
+        "REACH / FREQUENCY: Meta unique values per campaign per month; not additive, so brand / total / Jul–Oct blocks show –" + ("; this account's export is daily, so campaign reach is – too." if daily else "."),
         "LEVELS: Campaign totals and Brand totals are alternative views of the same spend / leads — never added together. Ad-set and ad level are intentionally not reported.",
     ]
     for n in notes:
@@ -447,7 +447,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
 
     # ---- Month-on-Month
     wsM["A1"] = f"MONTH-ON-MONTH — {brand.upper()} (brand total, Meta + Facebook-sourced CRM)"
-    wsM["A2"] = "Live links to Brand-Wise section A. MoM % = change vs previous month; October is partial so Oct vs Sep is not like-for-like. N/A where a value cannot be calculated."
+    wsM["A2"] = "Live links to Brand-Wise section A. MoM % = change vs previous month; October is partial so Oct vs Sep is not like-for-like. A dash (–) where a value cannot be calculated."
     for rr in (1, 2):
         for cidx in range(1, 12): wsM.cell(rr, cidx).fill = fill(NAVY); wsM.cell(rr, cidx).font = f(rr == 1, "FFFFFF", 14 if rr == 1 else 10)
     heads = ["KPI", "Jul 2026", "Aug 2026", "Sep 2026", "Oct 2026 (partial)", "Jul–Oct total", "Aug vs Jul %", "Sep vs Aug %", "Oct vs Sep % (partial)"]
@@ -459,7 +459,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
         for bi in range(5):
             c = wsM.cell(rr, 2 + bi, f"='Brand-Wise'!{colof(bi, k_)}{brand_row}"); c.number_format = fm; c.font = f(); c.alignment = Alignment(horizontal="right")
         for q, (a, b) in enumerate([("B", "C"), ("C", "D"), ("D", "E")]):
-            c = wsM.cell(rr, 7 + q, f'=IFERROR(IF({a}{rr}=0,"N/A",({b}{rr}-{a}{rr})/ABS({a}{rr})),"N/A")'); c.number_format = "0.0%"; c.font = f(); c.alignment = Alignment(horizontal="right")
+            c = wsM.cell(rr, 7 + q, f'=IFERROR(IF({a}{rr}=0,"–",({b}{rr}-{a}{rr})/ABS({a}{rr})),"–")'); c.number_format = "0.0%"; c.font = f(); c.alignment = Alignment(horizontal="right")
     wsM.column_dimensions["A"].width = 42
     for cl in "BCDEFGHI": wsM.column_dimensions[cl].width = 17
     wsM.freeze_panes = "B5"; wsM.sheet_view.showGridLines = False
@@ -467,7 +467,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
     # ---- KPI definitions
     kd = [("KPI", "Formula / rule", "Source"),
           ("Amount Spent / Impressions / Clicks / Link clicks / LPV", "Source values summed by campaign and month", "Meta campaign export"),
-          ("Reach / Frequency", "Reach = Meta unique value per campaign per month; Frequency = Impressions ÷ Reach; N/A when not additive / not supplied", "Meta"),
+          ("Reach / Frequency", "Reach = Meta unique value per campaign per month; Frequency = Impressions ÷ Reach; – when not additive / not supplied", "Meta"),
           ("CTR (all) / Link CTR", "Clicks (or Link clicks) ÷ Impressions", "Meta"), ("CPC / Link CPC", "Spend ÷ Clicks (or Link clicks)", "Meta"),
           ("CPM", "Spend ÷ Impressions × 1,000", "Meta"), ("Meta Platform Leads", "Results where Result indicator = actions:leadgen.other", "Meta"),
           ("CPL (Meta)", "Spend ÷ Meta Platform Leads", "Meta"),
@@ -477,7 +477,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
           ("CPL (CRM)", "Spend ÷ CRM Leads", ""), ("CPQL", "Spend ÷ Qualified Leads", ""), ("Cost Per Meeting", "Spend ÷ Meetings Scheduled", ""),
           ("Contacted / Not Contacted", "Contacted = Status ≠ New Lead; Not Contacted = New Lead; Blank / Invalid = empty status", "Lead Module"),
           ("Lead Modification TAT", "(Modified On − Created On) in hours; Eligible = both timestamps valid and TAT ≥ 0; NOT first-response time", "Lead Module"),
-          ("N/A rule", "Shown when the denominator is zero or the input is not supplied — never an artificial zero", ""),
+          ("Dash (–) rule", "A dash is shown when the denominator is zero or the source did not supply the input — never an artificial zero", ""),
           ("Not reported", "Meta-vs-CRM lead-by-lead match (no Meta Leads Center export), FTD, ad-set and ad level", "")]
     for row_ in kd: wsK.append(list(row_))
     for c in wsK[1]: c.font = f(True, "FFFFFF"); c.fill = fill(NAVY)
@@ -500,7 +500,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
           (7, "Spend", "Monthly export vs the earlier single-period (1 Jul–30 Oct) export", "PASS" if abs(raw_total - EARLIER[brand]) < 0.01 else "INFO",
            f"Monthly export ₹{raw_total:,.2f} vs earlier single-period export ₹{EARLIER[brand]:,.2f} (difference ₹{raw_total - EARLIER[brand]:,.2f}"
            + (" — identical)." if abs(raw_total - EARLIER[brand]) < 0.01 else "; Meta restatement). The monthly export is used.")),
-          (8, "Reach", "Reach / Frequency", "WARN", "Unique reach is not additive: N/A at brand / total / Jul–Oct level" + ("; daily export → campaign reach N/A as well." if daily else ".")),
+          (8, "Reach", "Reach / Frequency", "WARN", "Unique reach is not additive: – at brand / total / Jul–Oct level" + ("; daily export → campaign reach – as well." if daily else ".")),
           (9, "Attribution", "Campaign attribution of Facebook leads", "WARN" if nocap else "PASS",
            f"{paid:,} Facebook-sourced leads: {n_named:,} name their campaign on the lead; {n_mapped:,} had no campaign name and were placed on a campaign via their Ad Set ID "
            f"(an Ad Set ID is used only if every lead carrying it names the same campaign; ad-set NAME matching was rejected as unreliable); {nocap:,} ({nocap/max(paid,1):.1%}) remain not determinable "
@@ -513,7 +513,7 @@ def main(brand, lead_dir, meta_dir, out_dir):
           (14, "Not reported", "Meta-vs-CRM lead match", "INFO", "Meta Leads Center export not supplied → match / unmatched / variance columns removed."),
           (15, "Not reported", "FTD, ad-set, ad level", "INFO", "Out of scope by instruction."),
           (16, "Meta", "Landing page views not supplied", "INFO",
-           "Blank in source (shown N/A, not 0) for: " + (", ".join(m for m in MONTHS if m in set(meta['Month']) and meta[meta['Month'] == m]['LPV'].isna().all()) or "none")),
+           "Blank in source (shown –, not 0) for: " + (", ".join(m for m in MONTHS if m in set(meta['Month']) and meta[meta['Month'] == m]['LPV'].isna().all()) or "none")),
           (17, "TAT", "Leads not eligible for TAT (missing / negative Modified − Created)", "PASS" if n_bad_tat == 0 else "INFO",
            f"{n_bad_tat} of {len(crm):,} leads excluded from TAT averages; all other TAT figures use every eligible lead.")]
     for row_ in dq: wsQ.append(list(row_))
