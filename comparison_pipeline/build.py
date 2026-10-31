@@ -33,6 +33,8 @@ def build(brand, d, out):
     B = brand
     from datalayer import NEW, NEW_SETS
     NEW.clear(); NEW.update(NEW_SETS[brand])
+    if brand == 'Carlton':
+        from datalayer import INFER_NAME; NEW.add(INFER_NAME)
     ct = campaign_table(d)
     act = active_campaigns(ct)
     f = fact_frame(d, ct)

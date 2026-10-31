@@ -22,6 +22,7 @@ CFG = {
 WIN_START, WIN_END = pd.Timestamp('2026-10-01'), pd.Timestamp('2026-10-31')
 
 
+INFER_NAME = 'EBG - In House | Carlton Salon | WhatsApp API leads (campaign blank in CRM) | Oct26'
 NEW = set()
 NEW_SETS = {
     'Natuf': ['EBG - In House | ABO | Natuf | Leads | Unit Franchise | India | Oct26 | V1',
@@ -53,6 +54,7 @@ def blank(x):
 def build(brand):
     cfg = CFG[brand]
     NEW.clear(); NEW.update(NEW_SETS[brand])
+    if brand == 'Carlton': NEW.add(INFER_NAME)
     df, n_raw, n_dup = load_leads()
     camp = pd.read_csv(RAW + f"{cfg['prefix']}-Campaigns-1-Oct-2026-31-Oct-2026.csv")
     adst = pd.read_csv(RAW + f"{cfg['prefix']}-Ad-sets-1-Oct-2026-31-Oct-2026.csv")
@@ -64,7 +66,7 @@ def build(brand):
     tags = df.loc[ingroup, 'Facebook Campaign Name'].fillna('_')
     extra = sorted({t for t in tags if t not in U and not blank(t) and (cfg['kw'].search(t)) and t not in cfg['alias']})
     # which extras are really this brand: must contain Oct26-style structure or keyword; others (e.g. AAC, Nonstop) are excluded by kw
-    extra = sorted(set(extra) | set(NEW_SETS[brand]) - U)
+    extra = sorted((set(extra) | set(NEW_SETS[brand]) | ({INFER_NAME} if brand == 'Carlton' else set())) - U)
     universe = U | set(extra)
 
     def resolve(tag):
@@ -81,7 +83,9 @@ def build(brand):
             if tag_ok:
                 rows_in.append((ix, r['camp_res'], 'Alias (CRM campaign name differs from Meta name)' if r['alias_used'] else 'Direct (campaign tagged in CRM)'))
             elif blank(r['camp_tag']):
-                if r['Lead Source'] in ('Facebook', 'Whatsapp Cloud API'):
+                if brand == 'Carlton' and r['Lead Source'] == 'Whatsapp Cloud API' and r['Brand'] == 'In House Carlton Salon':
+                    rows_in.append((ix, INFER_NAME, 'Inferred - WhatsApp-API lead, campaign blank in CRM, brand In House Carlton Salon (EBG - In House) -> New'))
+                elif r['Lead Source'] in ('Facebook', 'Whatsapp Cloud API'):
                     rows_in.append((ix, '(Unattributed)', 'No campaign tag in CRM (paid/WhatsApp lead, campaign blank)'))
                 else:
                     excl.append((ix, f"No campaign and no ad set in CRM; lead source = {r['Lead Source']} (bulk/manual upload, not a campaign lead)"))

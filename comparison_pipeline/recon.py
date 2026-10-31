@@ -110,6 +110,9 @@ def fill(wb, S, d, ct, act, f, B, k):
     ]
     if alias_n:
         lines.append(('b', f"•  {alias_n} leads carry the CRM campaign name 'ABO | CW | WhatsApp | Unit Franchise | India | Oct26 | V2', which does not exist in Meta (the only CW WhatsApp campaign there is '... Oct26 | V1'); they were mapped to that V1 campaign (Attribution Method = Alias)."))
+    inf = int(L.method.str.startswith('Inferred').sum())
+    if inf:
+        lines.append(('b', f"•  {inf} WhatsApp-API leads have a blank campaign in the CRM but are tagged to the brand 'In House Carlton Salon' (the EBG - In House account). As instructed, they are classified as New under the pseudo-campaign '{L[L.method.str.startswith('Inferred')].campaign.iloc[0]}' (Attribution Method = Inferred); this is a brand-based assumption, not a CRM campaign tag, and their spend is not available."))
     if blank_un:
         lines.append(('b', f"•  {blank_un} paid / WhatsApp-API leads have a blank campaign in the CRM and no ad-set information. They are shown as Unattributed (not forced into Old or New); {int(L[(L.campaign=='(Unattributed)') & (L.status=='New Lead')].shape[0])} of them are still 'New Lead'."))
     lines += [
