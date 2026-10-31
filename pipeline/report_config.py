@@ -11,7 +11,8 @@ MONTHS = [m["key"] for m in CFG["months"]]
 N = len(MONTHS)
 MNAME = {m["key"]: m["name"] for m in CFG["months"]}
 PARTIAL = next((m["key"] for m in CFG["months"] if m.get("partial")), None)
-MLAB = {k: f"{k} {YEAR}" + (" (partial)" if k == PARTIAL else "") for k in MONTHS}            # pivot / dashboard labels
+PARTIAL_IN_LABEL = CFG.get("partial_in_label", True)   # False: column/month labels read "Oct 2026"; the partial-month note stays in the text
+MLAB = {k: f"{k} {YEAR}" + (" (partial)" if k == PARTIAL and PARTIAL_IN_LABEL else "") for k in MONTHS}            # pivot / dashboard labels
 MFULL = {k: f"{MNAME[k].upper()} {YEAR}" + (" (partial — data to {end})" if k == PARTIAL else "") for k in MONTHS}  # '{end}' filled by data_end()
 FIRST, LAST = MONTHS[0], MONTHS[-1]
 PERIOD = f"{FIRST}–{LAST} {YEAR}" if N > 1 else f"{FIRST} {YEAR}"           # Jul–Oct 2026

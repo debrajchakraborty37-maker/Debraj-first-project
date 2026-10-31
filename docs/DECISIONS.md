@@ -27,6 +27,7 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **Cost basis (important):** leads on campaigns whose spend is NOT in the supplied Meta files ("outside Meta export", e.g. Natuf's in-house campaigns: 86 % of Sep, 39 % of Oct) are excluded from CPL / Quality % / CPQL and listed separately; undetermined-campaign leads stay in. The 7 brand reports' brand-total CPL still uses all Facebook leads (not changed — offer to align).
 - **TK = Tamil Nadu–Kerala:** 'Adhira & Appa Tk UF/MF' and 'Acer TK' are Coffee / Acer leads (campaign names 'AAC … TN-Kerala'). Adhira & Appa here includes TK; the earlier 7 reports excluded Adhira TK (~226 Sep leads). Adhira & Appa Toys = brand 'Adhira & Appa Toys' only; no Meta export supplied → cost shows a dash.
 - **Cut-offs differ:** Meta (Rahul set) to 30 Oct, new Meta files to 31 Oct, LeadDetails to 30 Oct 13:15, FW leads to 27 Oct, Daewoo to 30 Oct; Oct is partial. Counts (Quality Leads) are not like-for-like with a full month.
+- **Month label:** in the Brand Comparison report the October column/month reads "Oct 2026" (no "(partial)"); the partial-month caveat stays in the notes. Config key `partial_in_label: false` (default true keeps the 7 brand reports' labels).
 
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.

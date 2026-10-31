@@ -1,6 +1,7 @@
 {
   "_readme": "Config for the one-workbook Brand Comparison report (pipeline/build_comparison_report.py): Sep vs Oct CPL, Quality Leads, Quality Lead %, CPQL for 12 brands. Same schema as report_config.json plus per-brand 'display', 'source' (leaddetails | daewoo_reports | fw_leads) and 'meta_dir' (meta_experts | comp). Edit months/brands here for a new comparison.",
   "year": 2026,
+  "partial_in_label": false,
   "months": [
     {"key": "Sep", "name": "September"},
     {"key": "Oct", "name": "October", "partial": true}
