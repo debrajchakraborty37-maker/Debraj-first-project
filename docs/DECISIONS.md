@@ -19,6 +19,15 @@ Newest last. Each line: what the user said / chose → what we do → why.
 
 - **Agent name:** the report agent is called **Brio** (`.claude/agents/brio.md`); user asked for a small name.
 
+## 2026-10-31 — Brand Comparison report (Sep vs Oct 2026, 12 brands, ONE workbook)
+- **Ask:** one report comparing Sep vs Oct for CPL, Quality Leads, Quality Lead %, CPQL for 12 brands (Adhira & Appa, Acer, Chhota Bheem, Bonum Cha, Natuf by Shayreen, Natuf, Carlton, Daewoo, FW, Adhira & Appa Toys, Nonstop Physio, Govintham); one Master Pivot (slicers, clickable, scrollable) + one Master Dashboard for management. FW and Adhira & Appa Toys are separate brands.
+- **Quality Lead:** same status list as the 7 brand reports (Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted).
+- **Daewoo:** taken from the two Daewoo x ShootOrder reports (Daewoo CRM; spend + leads on campaigns with spend; qualified = the report's own flag, which also counts Interested/Negotiation/Token Received/Won). The Daewoo Meta CSV (to 31 Oct) is not used for spend (reports end 30 Oct).
+- **FW:** Kustard-FW Meta spend ÷ Facebook form leads in FW_LeadData ('face book' source) — bulk Excel uploads (82 %) not counted. FW lead file ends 27 Oct, so FW's Oct CPL is overstated.
+- **Cost basis (important):** leads on campaigns whose spend is NOT in the supplied Meta files ("outside Meta export", e.g. Natuf's in-house campaigns: 86 % of Sep, 39 % of Oct) are excluded from CPL / Quality % / CPQL and listed separately; undetermined-campaign leads stay in. The 7 brand reports' brand-total CPL still uses all Facebook leads (not changed — offer to align).
+- **TK = Tamil Nadu–Kerala:** 'Adhira & Appa Tk UF/MF' and 'Acer TK' are Coffee / Acer leads (campaign names 'AAC … TN-Kerala'). Adhira & Appa here includes TK; the earlier 7 reports excluded Adhira TK (~226 Sep leads). Adhira & Appa Toys = brand 'Adhira & Appa Toys' only; no Meta export supplied → cost shows a dash.
+- **Cut-offs differ:** Meta (Rahul set) to 30 Oct, new Meta files to 31 Oct, LeadDetails to 30 Oct 13:15, FW leads to 27 Oct, Daewoo to 30 Oct; Oct is partial. Counts (Quality Leads) are not like-for-like with a full month.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

@@ -13,3 +13,6 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 - **Run:** `pipeline/run_report.sh <lead_dir> <meta_dir> <out_dir> [brand ...]` — build → LibreOffice recalc → real PivotTable + slicers → four independent verifiers → `Brand_Reports.zip`. Needs python3 (pandas, numpy, openpyxl) and LibreOffice. Exits non-zero if any check fails.
 - Each brand workbook: Master Dashboard (Month dropdown, tiles, charts), All Reports (One Tab), Month-on-Month, Master Pivot (open in desktop Excel for slicers), Brand-Wise, Campaign-Wise, KPI Definitions, Data Quality Log, Validation, and data tabs.
 - Raw data (PII), generated workbooks and the reference workbook are git-ignored; supply them again for each run.
+
+### Brand Comparison report (Sep vs Oct, all brands in one workbook)
+`pipeline/run_comparison.sh <leads_dir> <meta_experts_dir> <comp_dir> <out_dir>` — config `config/comparison_config.json`; details in `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`. Output (git-ignored): `Brand_Comparison_Sep-Oct2026.xlsx` with Master Dashboard, Comparison, Master Pivot (slicers), Data Quality Log, Validation.

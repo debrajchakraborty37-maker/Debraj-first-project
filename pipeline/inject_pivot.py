@@ -40,6 +40,18 @@ DATA_FIELDS = [("Spend (₹)", 5, "cost"), ("Impressions", 6, 3), ("Link Clicks"
                ("CPL – CRM (₹)", 19, "cost"), ("CPQL (₹)", 20, "cost")]
 SLICERS = [("Month", 0, "Slicer_Month"), ("Lead attribution", 4, "Slicer_Lead_attribution"), ("Delivery", 3, "Slicer_Delivery"),
            ("Campaign", 2, "Slicer_Campaign")]
+COL_FIELD, ROW_FIELDS = 0, (1, 2)                 # pivot columns = Month; rows = Brand > Campaign (indices into STR_FIELDS)
+ROW_CAPTION, COL_CAPTION = "Brand  ›  Campaign", "Month"
+SLICER_LAYOUT = [(95250, 1450000), (1600000, 3300000), (4950000, 1500000), (6550000, 4200000)]   # (x offset, width) in EMU per slicer
+_DEFAULTS = {k: globals()[k] for k in ("MONTHS", "NUM_FIELDS", "STR_FIELDS", "CALC", "DATA_FIELDS", "SLICERS", "COL_FIELD", "ROW_FIELDS", "ROW_CAPTION", "COL_CAPTION", "SLICER_LAYOUT")}
+
+
+def configure(spec=None):
+    """Override the pivot layout (fields, measures, slicers, hierarchy). spec=None restores the per-brand report defaults."""
+    for k, v in _DEFAULTS.items(): globals()[k] = v
+    for k, v in (spec or {}).items():
+        assert k in _DEFAULTS, k
+        globals()[k] = v
 
 
 def col_letter(n):
@@ -53,20 +65,20 @@ def read_pivot_data(path):
     ws = wb["Pivot_Data"]
     rows = [list(r) for r in ws.iter_rows(min_row=1, values_only=True)]
     wb.close()
-    head = rows[0][:15]
+    nb = len(STR_FIELDS) + len(NUM_FIELDS)
+    head = rows[0][:nb]
     assert head == STR_FIELDS + NUM_FIELDS, head
-    data = [r[:15] for r in rows[1:] if r[0] is not None]
+    data = [r[:nb] for r in rows[1:] if r[0] is not None]
     return data
 
 
 def build_parts(data, sheet_name):
     n = len(data)
+    NS, NN, NC = len(STR_FIELDS), len(NUM_FIELDS), len(CALC)
     shared = []  # per string field: ordered unique values
-    for f in range(5):
-        seen = []
-        for r in data:
-            if r[f] not in seen: seen.append(r[f])
-        if f == 0: seen = [m for m in MONTHS if m in seen]
+    for f in range(NS):
+        seen = list(dict.fromkeys(r[f] for r in data))
+        if f == COL_FIELD: seen = [m for m in MONTHS if m in seen]
         shared.append(seen)
     # ---- cache definition
     cf = []
@@ -74,7 +86,7 @@ def build_parts(data, sheet_name):
         items = "".join(f"<s v={quoteattr(v)}/>" for v in shared[f])
         cf.append(f'<cacheField name={quoteattr(name)} numFmtId="0"><sharedItems count="{len(shared[f])}">{items}</sharedItems></cacheField>')
     for j, name in enumerate(NUM_FIELDS):
-        vals = [float(r[5 + j] or 0) for r in data]
+        vals = [float(r[NS + j] or 0) for r in data]
         isint = all(abs(v - round(v)) < 1e-9 for v in vals)
         mn, mx = min(vals), max(vals)
         fmt = "300" if j == 0 else "3"
@@ -84,51 +96,55 @@ def build_parts(data, sheet_name):
         cf.append(f'<cacheField name={quoteattr(name)} numFmtId="0" formula={quoteattr(formula)} databaseField="0"/>')
     cache_def = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<pivotCacheDefinition xmlns="{NS_MAIN}" xmlns:r="{NS_R}" r:id="rId1" refreshOnLoad="1" '
                  f'refreshedBy="Claude" refreshedDate="46325.5" createdVersion="8" refreshedVersion="6" minRefreshableVersion="3" recordCount="{n}">'
-                 f'<cacheSource type="worksheet"><worksheetSource ref="A1:O{n + 1}" sheet="Pivot_Data"/></cacheSource>'
+                 f'<cacheSource type="worksheet"><worksheetSource ref="A1:{col_letter(NS + NN)}{n + 1}" sheet="Pivot_Data"/></cacheSource>'
                  f'<cacheFields count="{len(cf)}">{"".join(cf)}</cacheFields>'
                  f'<extLst><ext uri="{{725AE2AE-9491-48be-B2B4-4EB974FC3084}}" xmlns:x14="{NS_X14}"><x14:pivotCacheDefinition pivotCacheId="{CACHE_ID_X14}"/></ext></extLst>'
                  f'</pivotCacheDefinition>')
     # ---- records
     recs = []
     for r in data:
-        x = "".join(f'<x v="{shared[f].index(r[f])}"/>' for f in range(5))
-        v = "".join(f'<n v="{float(r[5 + j] or 0):.10g}"/>' for j in range(10))
+        x = "".join(f'<x v="{shared[f].index(r[f])}"/>' for f in range(NS))
+        v = "".join(f'<n v="{float(r[NS + j] or 0):.10g}"/>' for j in range(NN))
         recs.append(f"<r>{x}{v}</r>")
     cache_rec = f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<pivotCacheRecords xmlns="{NS_MAIN}" xmlns:r="{NS_R}" count="{n}">{"".join(recs)}</pivotCacheRecords>'
     # ---- pivot table definition
-    ncamp = len(shared[2])
     pf = []
-    for f in range(5):
+    for f in range(NS):
         k = len(shared[f])
         items = "".join(f'<item x="{i}"/>' for i in range(k)) + '<item t="default"/>'
-        if f == 0:
+        if f == COL_FIELD:
             pf.append(f'<pivotField axis="axisCol" showAll="0" defaultSubtotal="0"><items count="{k}">{"".join(f"<item x=\"{i}\"/>" for i in range(k))}</items></pivotField>')
-        elif f in (1, 2):
+        elif f in ROW_FIELDS:
             pf.append(f'<pivotField axis="axisRow" showAll="0"><items count="{k + 1}">{items}</items></pivotField>')
         else:
             pf.append(f'<pivotField showAll="0"><items count="{k + 1}">{items}</items></pivotField>')
     used = {d[1] for d in DATA_FIELDS}
-    for j in range(10):
-        pf.append(f'<pivotField{" dataField=\"1\"" if 5 + j in used else ""} showAll="0"/>')
-    for j in range(10):
-        pf.append(f'<pivotField{" dataField=\"1\"" if 15 + j in used else ""} dragToRow="0" dragToCol="0" dragToPage="0" showAll="0" defaultSubtotal="0"/>')
-    row_items = '<i><x/></i>' + "".join(f'<i r="1"><x{"" if k == 0 else f" v=\"{k}\""}/></i>' for k in range(ncamp)) + '<i t="grand"><x/></i>'
+    for j in range(NN):
+        pf.append(f'<pivotField{" dataField=\"1\"" if NS + j in used else ""} showAll="0"/>')
+    for j in range(NC):
+        pf.append(f'<pivotField{" dataField=\"1\"" if NS + NN + j in used else ""} dragToRow="0" dragToCol="0" dragToPage="0" showAll="0" defaultSubtotal="0"/>')
+    # hierarchical row items: each outer item followed by its inner items (inner shared-item order)
+    fo, fi = ROW_FIELDS
+    kids = {o: sorted({shared[fi].index(r[fi]) for r in data if shared[fo].index(r[fo]) == o}) for o in range(len(shared[fo]))}
+    xv = lambda k: "<x/>" if k == 0 else f'<x v="{k}"/>'
+    row_items = "".join(f'<i>{xv(o)}</i>' + "".join(f'<i r="1">{xv(k)}</i>' for k in kids[o]) for o in range(len(shared[fo]))) + '<i t="grand"><x/></i>'
+    nrow_items = len(shared[fo]) + sum(len(v) for v in kids.values()) + 1
     col_items = ""
     for m in range(len(shared[0])):
         col_items += f'<i><x{"" if m == 0 else f" v=\"{m}\""}/><x/></i>'
         col_items += "".join(f'<i r="1" i="{k}"><x v="{k}"/></i>' for k in range(1, len(DATA_FIELDS)))
     nm = len(shared[0])
     last_col = col_letter(1 + nm * len(DATA_FIELDS))
-    last_row = 17 + 1 + ncamp
+    last_row = 16 + nrow_items
     fmt = {"cost": 300, "pct": 301}
     dfs = "".join(f'<dataField name={quoteattr(cap)} fld="{fld}" baseField="0" baseItem="0" numFmtId="{fmt.get(nf, nf)}"/>' for cap, fld, nf in DATA_FIELDS)
     pivot = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<pivotTableDefinition xmlns="{NS_MAIN}" name="{PIVOT_NAME}" cacheId="1" '
              f'applyNumberFormats="0" applyBorderFormats="0" applyFontFormats="0" applyPatternFormats="0" applyAlignmentFormats="0" applyWidthHeightFormats="1" '
              f'dataCaption="Values" errorCaption="–" showError="1" missingCaption="–" updatedVersion="6" minRefreshableVersion="3" colGrandTotals="0" '
-             f'itemPrintTitles="1" createdVersion="8" outline="1" outlineData="1" multipleFieldFilters="0" rowHeaderCaption="Brand  ›  Campaign" colHeaderCaption="Month" '
+             f'itemPrintTitles="1" createdVersion="8" outline="1" outlineData="1" multipleFieldFilters="0" rowHeaderCaption={quoteattr(ROW_CAPTION)} colHeaderCaption={quoteattr(COL_CAPTION)} '
              f'fieldListSortAscending="1"><location ref="A14:{last_col}{last_row}" firstHeaderRow="1" firstDataRow="3" firstDataCol="1"/>'
-             f'<pivotFields count="{len(pf)}">{"".join(pf)}</pivotFields><rowFields count="2"><field x="1"/><field x="2"/></rowFields>'
-             f'<rowItems count="{ncamp + 2}">{row_items}</rowItems><colFields count="2"><field x="0"/><field x="-2"/></colFields>'
+             f'<pivotFields count="{len(pf)}">{"".join(pf)}</pivotFields><rowFields count="2"><field x="{fo}"/><field x="{fi}"/></rowFields>'
+             f'<rowItems count="{nrow_items}">{row_items}</rowItems><colFields count="2"><field x="{COL_FIELD}"/><field x="-2"/></colFields>'
              f'<colItems count="{nm * len(DATA_FIELDS)}">{col_items}</colItems><dataFields count="{len(DATA_FIELDS)}">{dfs}</dataFields>'
              f'<pivotTableStyleInfo name="PivotStyleMedium9" showRowHeaders="1" showColHeaders="1" showRowStripes="0" showColStripes="0" showLastColumn="1"/>'
              f'</pivotTableDefinition>')
@@ -151,7 +167,7 @@ def slicer_parts(shared, tab_id):
 
 
 def drawing_xml():
-    colw = [58] + [14] * (12 * rc.N + 12)   # Master Pivot column widths (characters)
+    colw = [58] + [14] * (len(MONTHS) * len(DATA_FIELDS) + 12)   # Master Pivot column widths (characters)
     emu = lambda w: (int(w * 7 + 5)) * 9525
     edges = [0]
     for w in colw: edges.append(edges[-1] + emu(w))
@@ -160,7 +176,7 @@ def drawing_xml():
         for i in range(len(colw)):
             if x < edges[i + 1]: return i, x - edges[i]
         return len(colw) - 1, 0
-    layout = [(95250, 1450000), (1600000, 3300000), (4950000, 1500000), (6550000, 4200000)]
+    layout = SLICER_LAYOUT
     anchors = []
     for i, ((cap, fld, cname), (x0, w)) in enumerate(zip(SLICERS, layout)):
         (c0, o0), (c1, o1) = pos(x0), pos(x0 + w)
@@ -203,7 +219,8 @@ def next_rid(rels_xml):
     return max(ids + [0]) + 1
 
 
-def inject(src, dst):
+def inject(src, dst, spec=None):
+    configure(spec)
     data = read_pivot_data(src)
     z = zipfile.ZipFile(src)
     files = {n: z.read(n) for n in z.namelist()}
@@ -300,7 +317,7 @@ def inject(src, dst):
     with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as out:
         for n in order:
             if n in files: out.writestr(n, files[n])
-    return {"rows": len(data), "campaigns": len(shared[2]), "months": len(shared[0])}
+    return {"rows": len(data), "campaigns": len(shared[ROW_FIELDS[1]]), "months": len(shared[COL_FIELD])}
 
 
 if __name__ == "__main__":

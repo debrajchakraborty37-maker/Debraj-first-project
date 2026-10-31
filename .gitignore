@@ -6,3 +6,4 @@ outputs/*/*Campaign_Performance_Report*.xlsx
 templates/FinalReport_TEMPLATE.xlsx
 outputs/2026-10-30/*FinalReport_Jul-Oct2026.xlsx
 outputs/2026-10-30/*.zip
+outputs/*/Brand_Comparison*.xlsx

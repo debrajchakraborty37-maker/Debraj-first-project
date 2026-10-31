@@ -50,3 +50,7 @@ Needs python3 with pandas, numpy, openpyxl, and LibreOffice (`soffice`). ~2 min 
 
 ## 6. Deliver
 Zip of the workbooks (`Brand_Reports.zip`, made by run_report.sh) via SendUserFile; short summary: what changed, checks passed (counts), what is "–" and why, anything for the user to confirm. Outputs, raw data and the reference workbook stay out of git (`.gitignore`); code, config, docs and this skill are committed and pushed.
+
+
+## 7. Brand Comparison report (second report type)
+When the user asks to **compare two months across many brands** (CPL, Quality Leads, Quality Lead %, CPQL) in ONE workbook with a Master Pivot + Master Dashboard: use `pipeline/run_comparison.sh` (config `config/comparison_config.json`, decisions in `docs/DECISIONS.md` → "Brand Comparison report"). Inputs: monthly LeadDetails CSVs, Meta campaign CSVs (per account), the Daewoo reports and the FW lead file when those brands are included. Rules: cost basis excludes leads on campaigns outside the supplied Meta files; Daewoo from its reports; FW = Facebook form leads only; FW and Adhira & Appa Toys are separate brands; Tk = Tamil Nadu–Kerala (belongs to Coffee / Acer). Always run `verify_comparison.py` (exit 0) before sending, and tell the user about cut-off differences and brands without Meta spend.

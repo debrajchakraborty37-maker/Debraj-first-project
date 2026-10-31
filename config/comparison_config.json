@@ -1,0 +1,31 @@
+{
+  "_readme": "Config for the one-workbook Brand Comparison report (pipeline/build_comparison_report.py): Sep vs Oct CPL, Quality Leads, Quality Lead %, CPQL for 12 brands. Same schema as report_config.json plus per-brand 'display', 'source' (leaddetails | daewoo_reports | fw_leads) and 'meta_dir' (meta_experts | comp). Edit months/brands here for a new comparison.",
+  "year": 2026,
+  "months": [
+    {"key": "Sep", "name": "September"},
+    {"key": "Oct", "name": "October", "partial": true}
+  ],
+  "lead_file_pattern": "LeadDetails_{name}{year}.csv",
+  "qualified_statuses": ["Qualified", "Follow-Up", "Details Shared", "Meeting Scheduled", "Meeting Conducted"],
+  "meeting_statuses": ["Follow-Up", "Meeting Scheduled", "Meeting Conducted"],
+  "fw_exclusion_regex": "^fw[_ \\-|]",
+  "meta_leads_indicator": "actions:leadgen.other",
+  "daewoo_reports": {"Sep": "Daewoo x ShootOrder - Campaign Performance Report - MTD 1-30Sep  FTD 30Sep2026.xlsx", "Oct": "Daewoo x ShootOrder-Campaign Performance Report-MTD-1-30Oct-FTD-30-Oct2026.xlsx"},
+  "fw_lead_file": "FW_LeadData.csv",
+  "brands": {
+    "Adhira & Appa": {"display": "Adhira & Appa", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "Inhouse---Adhira",
+      "crm_brand_values": ["Adhira & Appa Coffee", "Adhira & Appa Coffee MF", "Adhira & Appa Coffee FOFO", "Adhira & Appa Tk UF", "Adhira & Appa Tk MF"]},
+    "Acer": {"display": "Acer", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "Inhouse-__-Acer", "crm_brand_values": ["Acer Electric Bikes", "Acer TK"]},
+    "Chhota Bheem": {"display": "Chhota Bheem", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "Shoot-Order---Chhota", "crm_brand_values": ["Chhota Bheem"]},
+    "Bonum Cha": {"display": "Bonum Cha", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "In-House-Bonum", "crm_brand_values": ["Bonum Cha", "Bonum Cha MF"]},
+    "Natuf by Shayreen": {"display": "Natuf by Shayreen", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "In-House-SHAYREEN", "crm_brand_values": ["Shayreen by Natuf"]},
+    "Natuf": {"display": "Natuf", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "Natuf-x-Gen-Y", "crm_brand_values": ["Natuf", "In House Natuf", "Natuf_MF"]},
+    "Carlton": {"display": "Carlton", "source": "leaddetails", "meta_dir": "meta_experts", "meta_file_prefix": "Kustard-__-Carlton",
+      "crm_brand_values": ["Carlon Spa", "Carlton Salon", "Carlton Wellness Center", "In House Carlton Salon", "In House Carlton Wellness", "Carlton"]},
+    "Daewoo": {"display": "Daewoo", "source": "daewoo_reports", "meta_dir": "comp", "meta_file_prefix": "Daewoo-x-ShootOrder", "crm_brand_values": []},
+    "FW": {"display": "FW", "source": "fw_leads", "meta_dir": "comp", "meta_file_prefix": "Kustard-__-FW", "crm_brand_values": []},
+    "Adhira & Appa Toys": {"display": "Adhira & Appa Toys", "source": "leaddetails", "meta_dir": "", "meta_file_prefix": "", "crm_brand_values": ["Adhira & Appa Toys"]},
+    "Nonstop Physio": {"display": "Nonstop Physio", "source": "leaddetails", "meta_dir": "comp", "meta_file_prefix": "Kustard-__-Nonstop", "crm_brand_values": ["Nonstop Physio", "Nonstop_MF", "Non Stop Physio Care"]},
+    "Govintham": {"display": "Govintham", "source": "leaddetails", "meta_dir": "comp", "meta_file_prefix": "Govintham", "crm_brand_values": ["Govintham"]}
+  }
+}

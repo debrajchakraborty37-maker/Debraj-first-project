@@ -48,3 +48,10 @@ Master Dashboard · All Reports (One Tab) [live mirror of Brand-Wise + Campaign-
 
 ## Verification suite (gate before delivery)
 `verify_reports` (≈78 k cells for 7 brands × 4 months) · `verify_masterpivot` (≈17.8 k cells + structure) · `verify_dashboard` (per dropdown value) · workbook Validation tab (24 ✔) · scan for `#` errors and any "N/A". A 3-month alternative config (`REPORT_CONFIG`) was run end-to-end as a generality test.
+
+## Brand Comparison report (separate pipeline, one workbook)
+`pipeline/run_comparison.sh <leads_dir> <meta_experts_dir> <comp_dir> <out_dir>` → `build_comparison_report.py` → `verify_comparison.py`.
+- Config: `config/comparison_config.json` (months, qualified statuses, FW rule, per-brand `source` = leaddetails | daewoo_reports | fw_leads, `meta_dir`, Meta file prefix, CRM brand values). It reuses `build_brand_report.load_crm / load_meta` and the Ad-Set-ID attribution by pointing `REPORT_CONFIG` at this config.
+- Tabs: Master Dashboard (portfolio tiles, scorecard with verdict colours, formula-driven insights, 4 Sep-vs-Oct charts, notes) · Comparison (per brand: spend, leads, CPL, Quality Leads, Quality %, CPQL with change + verdict; orange columns = leads outside the Meta export / not determinable) · Master Pivot (real PivotTable Brand › Campaign × Month × 6 measures; slicers Brand, Month, Lead attribution, Campaign; plain-value body, no panes) · Data Quality Log · KPI Definitions · Validation (12 live checks) · Dashboard_Data (chart helper, intentional #N/A gaps) · Pivot_Data / Data_Meta / Data_Leads (formula-linked, lead-level rows).
+- `inject_pivot.inject(src, dst, spec)` is spec-driven (fields, measures, slicers, hierarchy); `spec=None` keeps the per-brand report layout byte-identical (tested).
+- Verification: `verify_comparison.py` recomputes every brand/month/campaign line from the raw files (own code), compares Comparison, Pivot_Data, Data_Leads, Master Pivot body, dashboard tiles + scorecard, and pivot structure (≈5.3 k checks); negative-tested with a wrong qualified list (169 mismatches flagged).
