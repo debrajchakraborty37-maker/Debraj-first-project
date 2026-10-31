@@ -565,7 +565,7 @@ def build_dashboard(ws, wd, disp, brands):
     for ci in range(2, 14): ws.cell(vr, ci).fill = fill(GREY)
     notes = [
         "• Cost Per Lead (CPL) = Meta spend ÷ CRM leads that came from Facebook. Quality Lead = lead that reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Quality Lead % = Quality Leads ÷ CRM leads. Cost Per Quality Lead (CPQL) = Meta spend ÷ Quality Leads.",
-        "• " + rcfg.partial_sentence() + "; lead data ends 30 Oct for most brands (FW leads end 27 Oct, so FW's October cost per lead is overstated). Counts such as Quality Leads are not like-for-like with a full month — compare costs and percentages first.",
+        "• " + rcfg.partial_sentence() + "; lead data ends 30 Oct for most brands (the FW lead campaign was stopped, so FW's last lead is 27 Oct). Counts such as Quality Leads are not like-for-like with a full month — compare costs and percentages first.",
         "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ Facebook form leads in the FW lead file (bulk Excel uploads are not counted).",
         "• Leads on campaigns whose spend is NOT in the supplied Meta files are left out of CPL, Quality % and CPQL so cost and leads match (Natuf: 86% of Sep and 39% of Oct leads; Carlton 18% of Oct; Adhira & Appa ~10%). They are listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads (no campaign name, ad set not mappable) stay in.",
         *(["• " + nometa_text() + " has leads but no Meta spend in the supplied files, so its cost figures show a dash; its Quality Lead % is real."] if NOMETA else []),
@@ -595,7 +595,7 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
     ws_log.append(["#", "Brand / area", "Check", "Result", "Detail"])
     items = []
     def add(area, check, res, detail): items.append((area, check, res, detail))
-    add("All", "Period & cut-offs", "WARN", f"{rcfg.partial_sentence()}. Meta exports (Rahul set) end 30 Oct; the new Meta files (Govintham, FW, Nonstop) end 31 Oct; LeadDetails ends 30 Oct 13:15; FW leads end 27 Oct; Daewoo reports end 30 Oct.")
+    add("All", "Period & cut-offs", "WARN", f"{rcfg.partial_sentence()}. Meta exports (Rahul set) end 30 Oct; the new Meta files (Govintham, FW, Nonstop) end 31 Oct; LeadDetails ends 30 Oct 13:15; FW leads end 27 Oct because the FW lead campaign was stopped (confirmed by the user); Daewoo reports end 30 Oct.")
     add("All", "Quality Lead definition", "INFO", "Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted (same as the 7 brand reports). Daewoo uses its own report flag.")
     add("All", "FW is a separate brand", "INFO", "FW-prefixed CRM brands / campaigns are excluded from every other brand and reported only under FW (FW_LeadData + Kustard–FW Meta).")
     add("Adhira & Appa", "TK variants included", "INFO", "'Adhira & Appa Tk UF/MF' leads sit on 'AAC | … | TN-Kerala' campaigns (TK = Tamil Nadu–Kerala), i.e. Adhira & Appa Coffee, so they are counted here. The earlier 7 brand reports excluded them — Adhira & Appa's September leads there are ~226 lower.")
