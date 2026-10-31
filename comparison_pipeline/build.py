@@ -31,6 +31,8 @@ def wipe(ws):
 
 def build(brand, d, out):
     B = brand
+    from datalayer import NEW, NEW_SETS
+    NEW.clear(); NEW.update(NEW_SETS[brand])
     ct = campaign_table(d)
     act = active_campaigns(ct)
     f = fact_frame(d, ct)
@@ -68,7 +70,7 @@ def build(brand, d, out):
         s = lfl[lfl.ctype == t]
         return len(s), int(s.qual.sum())
     (lo, qo), (ln, qn) = lflk('Old'), lflk('New')
-    nospend = [c for c in act['name'] if c in d['extra']]
+    nospend = [c for c in act['name'] if c not in set(d['meta_names']) and c != '(Unattributed)']
     nospend_leads = int(ct[ct.name.isin(nospend)].leads.sum())
     unat = int((L.campaign == '(Unattributed)').sum())
 
@@ -255,8 +257,8 @@ def build(brand, d, out):
     ws['B11'] = 'Cost per lead (INR)  [campaigns with spend data]'
     ws['B14'] = 'COST PER QUALITY LEAD (INR)  [campaigns with spend data]'
     for col, tp in (('C', 'Old'), ('D', 'New')):
-        ws[f'{col}11'] = f'=IFERROR({col}8/SUMIFS(fCLeads,fType,"{tp}"),0)'
-        ws[f'{col}14'] = f'=IFERROR({col}8/SUMIFS(fCQual,fType,"{tp}"),0)'
+        ws[f'{col}11'] = f'=IFERROR({col}8/SUMIFS(fCLeads,fType,"{tp}"),"n/a")'
+        ws[f'{col}14'] = f'=IFERROR({col}8/SUMIFS(fCQual,fType,"{tp}"),"n/a")'
     ws['B15'] = ('Green = New is better, red = New is worse. Rates in percentage points (pp), volumes and costs in % change. Cost per lead / per quality lead divide spend by the leads of campaigns that have Meta spend data '
                  f'(the EBG - In House campaigns have {nospend_leads:,} CRM leads but no spend in the exports, so they are excluded from cost ratios only).')
     ws.row_dimensions[15].height = 44
@@ -341,9 +343,11 @@ def build(brand, d, out):
     ws['A1'] = f'{B} - Old vs New Campaigns: Lead Quality Comparison'
     ws['A2'] = f'Period {PERIOD} | CRM status as of 31-Oct-2026 | Quality Lead = {QTXT} | All figures are live formulas on the Fact_Data / Lead_Data tabs'
     cpl_ratio = (O['cpl'] / N['cpl']) if N['cpl'] else 0
-    ws['A5'] = (f"SCALE - Old campaigns (window 31 days) spent {fmt_inr(O['spend'])} and generated {rr_(O['leads'])} CRM leads. New campaigns (live {new_days} days, from {new_start:%d-%b}) spent {fmt_inr(N['spend'])} on "
-                f"campaigns with Meta spend data and generated {rr_(N['leads'])} CRM leads ({rr_(nospend_leads)} of them from EBG - In House campaigns whose spend is not in the exports).")
-    ws['A6'] = (f"COST - Cost per lead (campaigns with spend data): Old {fmt_inr(O['cpl'])} vs New {fmt_inr(N['cpl'])} ({(N['cpl'] / O['cpl'] - 1) * 100:+.0f}%). "
+    nocost = N['costed'] == 0
+    ws['A5'] = (f"SCALE - Old campaigns (window 31 days) spent {fmt_inr(O['spend'])} and generated {rr_(O['leads'])} CRM leads. New campaigns (EBG - In House; leads from {new_start:%d-%b}) generated {rr_(N['leads'])} CRM leads; their spend is not in the Meta exports supplied. "
+                f"{rr_(nospend_leads - N['leads'])} further Old-campaign leads (EBG - In House Master Franchise etc.) also have no spend data." if nocost else f"New campaigns spent {fmt_inr(N['spend'])} and generated {rr_(N['leads'])} CRM leads.")
+    ws['A6'] = ("COST - New campaigns (EBG - In House ad account) have NO spend in the Meta exports supplied, so New cost per lead / per quality lead cannot be calculated (n/a). "
+                f"Old: cost per lead {fmt_inr(O['cpl'])}, cost per quality lead {fmt_inr(O['cpql'])} (campaigns with spend data).") if nocost else (f"COST - Cost per lead (campaigns with spend data): Old {fmt_inr(O['cpl'])} vs New {fmt_inr(N['cpl'])} ({(N['cpl'] / O['cpl'] - 1) * 100:+.0f}%). "
                 f"Cost per Quality Lead: Old {fmt_inr(O['cpql'])} vs New {fmt_inr(N['cpql'])} ({(N['cpql'] / O['cpql'] - 1) * 100:+.0f}%).")
     ws['A7'] = (f"QUALITY RATE - Quality leads are {pct(O['qp'])} of Old leads vs {pct(N['qp'])} of New leads ({(N['qp'] - O['qp']) * 100:+.1f} pp). "
                 f"Counting only leads already worked (status other than 'New Lead'): Old {pct(O['qc'])} vs New {pct(N['qc'])}.")
@@ -360,10 +364,10 @@ def build(brand, d, out):
     ws['D14'] = f'Total (all {B})'
     ws['A23'] = f'CRM leads ({B} campaigns)'
     for col, tp in (('B', 'Old'), ('C', 'New')):
-        ws[f'{col}24'] = f'=IFERROR(SUMIFS(fCLeads,fType,{col}$14)/{col}21,0)'
-        ws[f'{col}25'] = f'=IFERROR({col}15/SUMIFS(fCLeads,fType,{col}$14),0)'
-        ws[f'{col}33'] = f'=IFERROR({col}15/SUMIFS(fCQual,fType,{col}$14),0)'
-    ws['D24'] = '=IFERROR(SUM(fCLeads)/D21,0)'; ws['D25'] = '=IFERROR(D15/SUM(fCLeads),0)'; ws['D33'] = '=IFERROR(D15/SUM(fCQual),0)'
+        ws[f'{col}24'] = f'=IFERROR(SUMIFS(fCLeads,fType,{col}$14)/{col}21,"n/a")'
+        ws[f'{col}25'] = f'=IFERROR({col}15/SUMIFS(fCLeads,fType,{col}$14),"n/a")'
+        ws[f'{col}33'] = f'=IFERROR({col}15/SUMIFS(fCQual,fType,{col}$14),"n/a")'
+    ws['C22'] = '=IFERROR(C15/C21,"n/a")'; ws['D24'] = '=IFERROR(SUM(fCLeads)/D21,0)'; ws['D25'] = '=IFERROR(D15/SUM(fCLeads),0)'; ws['D33'] = '=IFERROR(D15/SUM(fCQual),0)'
     ws['A24'] = 'CRM capture rate (CRM leads of Meta campaigns / Meta results)'
     ws['F24'] = 'How much of what Meta reports reached the CRM pipeline (leads of EBG - In House campaigns excluded: no Meta data).'
     ws['A25'] = 'Cost per CRM lead - CPL (INR)'; ws['F25'] = 'Ad spend / CRM leads of campaigns that have Meta spend data.'
