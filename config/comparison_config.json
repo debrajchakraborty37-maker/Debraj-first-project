@@ -25,7 +25,7 @@
       "crm_brand_values": ["Carlon Spa", "Carlton Salon", "Carlton Wellness Center", "In House Carlton Salon", "In House Carlton Wellness", "Carlton"]},
     "Daewoo": {"display": "Daewoo", "source": "daewoo_reports", "meta_dir": "comp", "meta_file_prefix": "Daewoo-x-ShootOrder", "crm_brand_values": []},
     "FW": {"display": "FW", "source": "fw_leads", "meta_dir": "comp", "meta_file_prefix": "Kustard-__-FW", "crm_brand_values": []},
-    "Adhira & Appa Toys": {"display": "Adhira & Appa Toys", "source": "leaddetails", "meta_dir": "", "meta_file_prefix": "", "crm_brand_values": ["Adhira & Appa Toys"]},
+    "Adhira & Appa Toys": {"display": "Adhira & Appa Toys", "source": "leaddetails", "meta_dir": "comp", "meta_file_prefix": "A--A-Toys", "crm_brand_values": ["Adhira & Appa Toys"]},
     "Nonstop Physio": {"display": "Nonstop Physio", "source": "leaddetails", "meta_dir": "comp", "meta_file_prefix": "Kustard-__-Nonstop", "crm_brand_values": ["Nonstop Physio", "Nonstop_MF", "Non Stop Physio Care"]},
     "Govintham": {"display": "Govintham", "source": "leaddetails", "meta_dir": "comp", "meta_file_prefix": "Govintham", "crm_brand_values": ["Govintham"]}
   }

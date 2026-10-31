@@ -89,6 +89,8 @@ def load_meta(meta_dir, prefix):
     fs = [x for x in glob.glob(os.path.join(meta_dir, f"{prefix}*Campaigns*.csv"))]
     assert len(fs) == 1, fs
     d = pd.read_csv(fs[0])
+    n_blank = int(d["Campaign name"].isna().sum())   # Meta adds a total/summary row with a blank campaign name to some exports -> never a campaign
+    d = d[d["Campaign name"].notna()].copy()
     d["Month"] = pd.to_datetime(d["Reporting starts"]).dt.strftime("%b")
     n_out = int((~d["Month"].isin(MONTHS)).sum())   # export rows for months outside the configured period are ignored
     d = d[d["Month"].isin(MONTHS)].copy()
@@ -105,6 +107,7 @@ def load_meta(meta_dir, prefix):
     if daily:  # unique reach is not additive across days
         g["Reach"] = None
     inds = sorted(set(ind) - {""})
+    g.attrs["blank_rows"] = n_blank
     return g, os.path.basename(fs[0]), raw_total, daily, inds, n_out
 
 

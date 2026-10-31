@@ -29,6 +29,7 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **Cut-offs differ:** Meta (Rahul set) to 30 Oct, new Meta files to 31 Oct, LeadDetails to 30 Oct 13:15, FW leads to 27 Oct, Daewoo to 30 Oct; Oct is partial. Counts (Quality Leads) are not like-for-like with a full month.
 - **Month label:** in the Brand Comparison report the October column/month reads "Oct 2026" (no "(partial)"); the partial-month caveat stays in the notes. Config key `partial_in_label: false` (default true keeps the 7 brand reports' labels).
 - **Dashboard graphics:** Master Dashboard also has a 'Graphical interpretation' section: CPL change %, CPQL change %, Quality Lead % change (pp) per brand as green (improved) / red (worse) bars, and Oct share of Meta spend vs share of quality leads per brand. Chart data lives in Dashboard_Data (formulas, NA() gaps).
+- **Adhira & Appa Toys Meta data received (2026-10-31):** one campaign 'E_Adhira & Appa Toys_23092026' (Sep ₹23,215.85 / Oct ₹103,272.73); ad-set and ad exports reconcile exactly. Toys now has CPL/CPQL. Rule: Meta exports can carry a first SUMMARY row with a blank Campaign name (the period total) — `load_meta` ignores blank-name rows so spend is never double counted (none of the other 11 exports had one).
 
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.

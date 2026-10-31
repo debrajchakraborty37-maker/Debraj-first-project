@@ -66,6 +66,18 @@ def meta_rows(g, brand):
     return [(r["Month"], r["Campaign name"], r["Delivery"] if isinstance(r["Delivery"], str) else "", float(r["Spend"])) for _, r in g.iterrows()]
 
 
+def reconcile_levels(meta_dir, prefix, g):
+    """Ad-set / Ad exports (not used in the report) must add up to the campaign export, per month — returns a sentence or None."""
+    out = []
+    for lab, pat, col in (("Ad-set", "Ad-sets", "Ad set name"), ("Ad", "Ads", "Ad name")):
+        fs = glob.glob(os.path.join(meta_dir, f"{prefix}*{pat}*.csv"))
+        if len(fs) != 1: continue
+        d = pd.read_csv(fs[0]); d = d[d[col].notna()].copy(); d["m"] = pd.to_datetime(d["Reporting starts"]).dt.strftime("%b")
+        diffs = [round(float(d[d["m"] == m]["Amount spent (INR)"].sum()) - float(g[g["Month"] == m]["Spend"].sum()), 2) for m in MONTHS]
+        out.append(f"{lab} export {'reconciles exactly' if all(abs(x) < 0.01 for x in diffs) else 'differs by ₹' + ' / ₹'.join(f'{x:,.2f}' for x in diffs)}")
+    return ("; ".join(out) + " to the campaign export per month.") if out else None
+
+
 def leaddetails_brand(name, spec, dirs, cache):
     prefix, crm_brands = spec["meta_file_prefix"], spec["crm_brand_values"]
     crm, cst = bb.load_crm(dirs["leads"], crm_brands)
@@ -74,13 +86,16 @@ def leaddetails_brand(name, spec, dirs, cache):
     if prefix:
         g, mfile, raw_total, daily, inds, n_out = bb.load_meta(dirs[spec["meta_dir"]], prefix)
         mcamps = set(g["Campaign name"]); mrows = meta_rows(g, name)
+        level_note = reconcile_levels(dirs[spec["meta_dir"]], prefix, g); blank_rows = g.attrs.get("blank_rows", 0)
+    else: level_note, blank_rows = None, 0
     f, n_fwad, n_nonfb = attribute(crm, mcamps, cst["idev"])
     if not prefix: f.loc[f["attr"] == ATTR_NOTIN, "attr"] = ATTR_NOEXP
     leads = pd.DataFrame({"month": f["Month"].values, "ref": f["Lead id"].values, "source": "Facebook", "status": f["Status"].fillna("").values,
                           "line": f["line"].values, "attr": f["attr"].values, "quality": f["Status"].isin(QUAL).astype(int).values, "qual_formula": True})
     notes = dict(source="LeadDetails CRM + Meta export" if prefix else "LeadDetails CRM (no Meta export supplied for this brand)", meta_file=mfile, meta_daily=bool(daily),
                  crm_all=len(crm), crm_nonfb=n_nonfb, fw_excluded_name=cst["fw_excluded"], fw_excluded_adset=n_fwad, last_lead=cst["maxdate"],
-                 variants={b: int((crm["Brand"] == b).sum()) for b in crm_brands}, meta_total=(float(g["Spend"].sum()) if g is not None else 0.0))
+                 variants={b: int((crm["Brand"] == b).sum()) for b in crm_brands}, meta_total=(float(g["Spend"].sum()) if g is not None else 0.0),
+                 level_note=level_note, blank_rows=blank_rows)
     return mrows, leads, notes
 
 
@@ -172,7 +187,16 @@ def build_lines(brands):
 
 
 # =============================================================== workbook
+NOMETA = []   # display names of brands without any Meta export (filled in write_workbook)
+
+
+def nometa_text():
+    return (" and ".join(NOMETA)) if NOMETA else ""
+
+
 def write_workbook(brands, lines, dirs, out_path):
+    global NOMETA
+    NOMETA = [b["display"] for b, sp in zip(brands, CFG["brands"].values()) if not sp["meta_file_prefix"]]
     wb = Workbook()
     ws_dash, ws_cmp, ws_piv, ws_log, ws_kpi, ws_val = (wb.active, wb.create_sheet("Comparison"), wb.create_sheet("Master Pivot"), wb.create_sheet("Data Quality Log"),
                                                       wb.create_sheet("KPI Definitions"), wb.create_sheet("Validation"))
@@ -326,7 +350,7 @@ def build_comparison(ws, disp, prng):
         ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{CMP_FIRST}="Improved"'], fill=PatternFill("solid", bgColor="C6EFCE", fgColor="C6EFCE"), font=Font(color="006100", bold=True)))
         ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{CMP_FIRST}="Worsened"'], fill=PatternFill("solid", bgColor="FFC7CE", fgColor="FFC7CE"), font=Font(color="9C0006", bold=True)))
     ws.cell(port + 2, 1, ("Verdict rules: CPL and CPQL lower = Improved; Quality Leads and Quality Lead % higher = Improved; ±1% (±0.5 pp for Quality Lead %) = Flat. "
-                          "'All brands with Meta spend' leaves out brands that have no Meta spend in the files (Adhira & Appa Toys) so cost and rates use the same base. "
+                          + ("'All brands with Meta spend' leaves out brands that have no Meta spend in the files (" + nometa_text() + ") so cost and rates use the same base. " if NOMETA else "'All brands with Meta spend' = every brand that has Meta spend in the files. ")
                           + rcfg.partial_sentence() + ": counts (Quality Leads) are not like-for-like with a full month; costs and percentages are."))
     ws.merge_cells(start_row=port + 2, start_column=1, end_row=port + 2, end_column=24)
     ws.cell(port + 2, 1).alignment = Alignment(wrap_text=True, vertical="top"); ws.cell(port + 2, 1).font = fnt(False, "404040", 9); ws.row_dimensions[port + 2].height = 44
@@ -544,7 +568,7 @@ def build_dashboard(ws, wd, disp, brands):
         "• " + rcfg.partial_sentence() + "; lead data ends 30 Oct for most brands (FW leads end 27 Oct, so FW's October cost per lead is overstated). Counts such as Quality Leads are not like-for-like with a full month — compare costs and percentages first.",
         "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ Facebook form leads in the FW lead file (bulk Excel uploads are not counted).",
         "• Leads on campaigns whose spend is NOT in the supplied Meta files are left out of CPL, Quality % and CPQL so cost and leads match (Natuf: 86% of Sep and 39% of Oct leads; Carlton 18% of Oct; Adhira & Appa ~10%). They are listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads (no campaign name, ad set not mappable) stay in.",
-        "• Adhira & Appa Toys has leads but no Meta spend in the supplied files, so its cost figures show a dash; its Quality Lead % is real.",
+        *(["• " + nometa_text() + " has leads but no Meta spend in the supplied files, so its cost figures show a dash; its Quality Lead % is real."] if NOMETA else []),
         "• Open the Master Pivot tab for the interactive view (slicers need desktop Excel) and the Comparison tab for every number behind this page.",
     ]
     for i, t in enumerate(notes):
@@ -575,7 +599,8 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
     add("All", "Quality Lead definition", "INFO", "Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted (same as the 7 brand reports). Daewoo uses its own report flag.")
     add("All", "FW is a separate brand", "INFO", "FW-prefixed CRM brands / campaigns are excluded from every other brand and reported only under FW (FW_LeadData + Kustard–FW Meta).")
     add("Adhira & Appa", "TK variants included", "INFO", "'Adhira & Appa Tk UF/MF' leads sit on 'AAC | … | TN-Kerala' campaigns (TK = Tamil Nadu–Kerala), i.e. Adhira & Appa Coffee, so they are counted here. The earlier 7 brand reports excluded them — Adhira & Appa's September leads there are ~226 lower.")
-    add("Adhira & Appa Toys", "No Meta spend supplied", "WARN", "Leads on 'E_Adhira & Appa Toys_23092026' are in the CRM, but that campaign is in none of the Meta exports. CPL / CPQL show a dash; leads and quality % are real.")
+    for nm_ in NOMETA:
+        add(nm_, "No Meta spend supplied", "WARN", "No Meta export was supplied for this brand, so CPL / CPQL show a dash; leads and Quality Lead % are real.")
     add("Daewoo", "Source", "INFO", "Taken from the two Daewoo × ShootOrder reports (user's choice): spend and leads on campaigns with spend; qualified = report flag.")
     for b in brands:
         nt = b["notes"]; ld = b["leads"]; n_ld = len(ld)
@@ -592,6 +617,10 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
             f"{n_ld:,} Facebook-sourced leads; {nocap:,} ({nocap / max(n_ld, 1):.0%}) campaign not determinable; {notin:,} ({notin / max(n_ld, 1):.0%}) on campaigns outside the Meta export (their spend is not in the cost); "
             f"{nt['crm_nonfb']:,} leads from other sources are not counted; last lead {nt['last_lead']:%d %b %H:%M}." + extra)
         add(b["display"], "Source files", "INFO", f"{nt['source']}" + (f"; Meta file {nt['meta_file']}" if nt.get("meta_file") else "") + (" (daily rows summed to months)" if nt.get("meta_daily") else "") + f"; Meta spend in period ₹{nt['meta_total']:,.2f}; {b['inactive_omitted']} Meta campaigns with no spend and no leads are omitted from the pivot.")
+        if nt.get("blank_rows"):
+            add(b["display"], "Meta summary row", "INFO", f"{nt['blank_rows']} summary row(s) with a blank campaign name (the Sep+Oct total Meta adds to the export) ignored so spend is not counted twice.")
+        if nt.get("level_note"):
+            add(b["display"], "Ad-set / Ad exports", "PASS" if "differs" not in nt["level_note"] else "WARN", nt["level_note"] + " (not used in this report.)")
         if nt.get("fw_excluded_name") or nt.get("fw_excluded_adset"):
             add(b["display"], "FW exclusion", "INFO", f"{nt['fw_excluded_name']} leads on FW_* campaigns and {nt['fw_excluded_adset']} leads on FW ad sets excluded (FW is a separate brand).")
     for i, (area, check, res, detail) in enumerate(items, 1): ws_log.append([i, area, check, res, detail])

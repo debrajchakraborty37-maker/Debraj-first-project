@@ -41,7 +41,7 @@ FWRE = "(?i)" + CFG["fw_exclusion_regex"]
 
 def meta_month(prefix, d):
     fs = glob.glob(os.path.join(d, f"{prefix}*Campaigns*.csv")); assert len(fs) == 1, (prefix, fs)
-    m = pd.read_csv(fs[0]); m["m"] = pd.to_datetime(m["Reporting starts"]).dt.strftime("%b"); m = m[m["m"].isin(MONTHS)]
+    m = pd.read_csv(fs[0]); m = m[m["Campaign name"].notna()]; m["m"] = pd.to_datetime(m["Reporting starts"]).dt.strftime("%b"); m = m[m["m"].isin(MONTHS)]
     return m
 
 
