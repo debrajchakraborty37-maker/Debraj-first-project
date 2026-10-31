@@ -199,6 +199,22 @@ for k, b in enumerate(list(EXP)):
     r = 14 + k
     cmp(f"DASH score {b} name", d.cell(r, 2).value, b)
     for col, src in zip((3, 4, 5, 6, 7, 8, 9, 10), ("G", "J", "L", "O", "Q", "S", "U", "X")): cmp(f"DASH score {b} c{col}", d.cell(r, col).value, cmpws[f"{src}{disp_rows[b]}"].value)
+# ------------------------------------------------------------------ chart helper (graphical interpretation) vs independent values
+dd = wb["Dashboard_Data"]
+NA_ = "#N/A"
+for k, b in enumerate(list(EXP)):
+    r = 4 + k; mm = S[b][1]; tot = S[b][0]
+    pc_ = lambda x, y: (y / x - 1) if isinstance(x, (int, float)) and isinstance(y, (int, float)) and x != 0 else None
+    pcl, pcq = pc_(mm[0]["cpl"], mm[1]["cpl"]), pc_(mm[0]["cpql"], mm[1]["cpql"])
+    pp = (mm[1]["qp"] - mm[0]["qp"]) if isinstance(mm[0]["qp"], (int, float)) and isinstance(mm[1]["qp"], (int, float)) else None
+    for col, val, good_neg in ((11, pcl, True), (13, pcq, True), (15, pp, False)):
+        good = val is not None and ((val < 0) if good_neg else (val > 0)); badv = val is not None and ((val > 0) if good_neg else (val < 0))
+        cmp(f"CHART {b} c{col} improved", dd.cell(r, col).value, val if good else NA_); cmp(f"CHART {b} c{col + 1} worsened", dd.cell(r, col + 1).value, val if badv else NA_)
+    m2 = MONTHS[1]
+    sp_tot = sum(S[x][0][m2]["spend"] for x in S); q_tot = sum(S[x][0][m2]["quality"] for x in S if S[x][0][m2]["spend"] > 0)
+    cmp(f"CHART {b} spend share", dd.cell(r, 17).value, (tot[m2]["spend"] / sp_tot) if tot[m2]["spend"] > 0 else 0.0)
+    cmp(f"CHART {b} quality share", dd.cell(r, 18).value, (tot[m2]["quality"] / q_tot) if tot[m2]["spend"] > 0 else 0.0)
+nch = len([n for n in z.namelist() if re.match(r"xl/charts/chart\d+\.xml", n)]); cmp("number of charts on the workbook", nch, 8)
 print(f"BRAND COMPARISON CHECKS: {checked:,} | MISMATCHES: {len(bad)}")
 for x in bad[:30]: print("  ", x)
 sys.exit(1 if bad else 0)

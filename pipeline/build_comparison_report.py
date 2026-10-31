@@ -416,6 +416,20 @@ def build_dashboard(ws, wd, disp, brands):
         for i, s in enumerate(src, 1):
             r = 4 + k; ref = f"{C}{s}{CMP_FIRST + k}"
             wd.cell(r, i, f"={ref}" if i == 1 else f"=IF(ISNUMBER({ref}),{ref},NA())")
+    # ---- helper columns for the "graphical interpretation" charts (green = improved / red = worsened as two series; NA() = gap)
+    gh = ["CPL change % — improved", "CPL change % — worsened", "CPQL change % — improved", "CPQL change % — worsened", "Quality Lead % change — improved", "Quality Lead % change — worsened",
+          f"{MLAB[M2]} share of Meta spend", f"{MLAB[M2]} share of quality leads"]
+    for i, h in enumerate(gh, 11):
+        c = wd.cell(3, i, h); c.font = fnt(True, "FFFFFF", 9); c.fill = fill(TEAL); c.alignment = Alignment(wrap_text=True); wd.column_dimensions[L(i)].width = 18
+    for k in range(n):
+        r = 4 + k; cr_ = CMP_FIRST + k
+        for col, srcc, good_neg in ((11, "I", True), (13, "W", True), (15, "R", False)):
+            x = f"{C}{srcc}{cr_}"
+            wd.cell(r, col, f"=IF(ISNUMBER({x}),IF({x}{'<' if good_neg else '>'}0,{x},NA()),NA())")
+            wd.cell(r, col + 1, f"=IF(ISNUMBER({x}),IF({x}{'>' if good_neg else '<'}0,{x},NA()),NA())")
+        wd.cell(r, 17, f"=IF(AND(ISNUMBER({C}C{cr_}),{C}C{port}>0),IF({C}C{cr_}>0,{C}C{cr_}/{C}C{port},0),0)")
+        wd.cell(r, 18, f"=IF(AND(ISNUMBER({C}C{cr_}),{C}L{port}>0),IF({C}C{cr_}>0,{C}L{cr_}/{C}L{port},0),0)")
+        for col in range(11, 19): wd.cell(r, col).number_format = "0.0%"
     # ---- portfolio tiles
     ws["B5"] = "ALL BRANDS WITH META SPEND — AT A GLANCE"; ws["B5"].font = fnt(True, "FFFFFF", 11)
     for ci in range(2, 14): ws.cell(5, ci).fill = fill(BLUE)
@@ -491,8 +505,38 @@ def build_dashboard(ws, wd, disp, brands):
         ch.series[0].graphicalProperties.solidFill = "9DB2D6"; ch.series[1].graphicalProperties.solidFill = col
         ch.y_axis.number_format = nf; ch.y_axis.delete = False; ch.x_axis.delete = False; ch.y_axis.majorGridlines = None
         ws.add_chart(ch, f"{'B' if k % 2 == 0 else 'H'}{cr + (k // 2) * 19}")
+    # ---- graphical interpretation
+    gr = cr + 2 * 19 + 1
+    ws.cell(gr, 2, f"GRAPHICAL INTERPRETATION — HOW EACH BRAND MOVED ({MLAB[M1]} → {MLAB[M2]}) AND WHERE THE MONEY WENT").font = fnt(True, "FFFFFF", 11)
+    for ci in range(2, 14): ws.cell(gr, ci).fill = fill(TEAL)
+    c_ = ws.cell(gr + 1, 2, "How to read: GREEN bars = the brand got better, RED = got worse. For cost charts a bar to the LEFT of zero means the cost fell (good); for Quality Lead % a bar to the RIGHT means a higher share of good leads (good). "
+                 "The last chart compares each brand's share of October Meta spend with its share of October quality leads — a brand whose quality-lead share is higher than its spend share is delivering more than it costs.")
+    c_.alignment = Alignment(wrap_text=True, vertical="top"); c_.font = fnt(False, "404040", 9); ws.merge_cells(start_row=gr + 1, start_column=2, end_row=gr + 1, end_column=13); ws.row_dimensions[gr + 1].height = 44
+    cat2 = Reference(wd, min_col=1, min_row=4, max_row=3 + n)
+    from openpyxl.chart.label import DataLabelList as _DLL
+    def dlabels(series, fm):
+        series.dLbls = _DLL(); series.dLbls.showVal = True; series.dLbls.showSerName = False; series.dLbls.showCatName = False; series.dLbls.showLegendKey = False; series.dLbls.showPercent = False; series.dLbls.numFmt = fm
+    def change_chart(title, c0, fm, anchor):
+        ch = BarChart(); ch.type = "bar"; ch.grouping = "clustered"; ch.overlap = 100; ch.gapWidth = 40
+        ch.title = title; ch.width = 19; ch.height = 10.5; ch.legend.position = "b"
+        ch.add_data(Reference(wd, min_col=c0, max_col=c0 + 1, min_row=3, max_row=3 + n), titles_from_data=True); ch.set_categories(cat2)
+        ch.series[0].graphicalProperties.solidFill = "2E9E5B"; ch.series[1].graphicalProperties.solidFill = "D64545"
+        for sr_ in ch.series: dlabels(sr_, fm)
+        ch.x_axis.scaling.orientation = "maxMin"; ch.x_axis.tickLblPos = "low"; ch.x_axis.delete = False; ch.y_axis.delete = False
+        ch.y_axis.number_format = fm; ch.y_axis.majorGridlines = None
+        ws.add_chart(ch, anchor)
+    change_chart("A · Cost Per Lead — change vs " + MLAB[M1].split()[0] + " (left = cheaper)", 11, "0%", f"B{gr + 3}")
+    change_chart("B · Cost Per Quality Lead — change vs " + MLAB[M1].split()[0] + " (left = cheaper)", 13, "0%", f"H{gr + 3}")
+    change_chart("C · Quality Lead % — change in percentage points (right = better)", 15, "0.0%", f"B{gr + 3 + 22}")
+    d_ch = BarChart(); d_ch.type = "bar"; d_ch.grouping = "clustered"; d_ch.gapWidth = 60
+    d_ch.title = f"D · Share of {MLAB[M2]} Meta spend vs share of {MLAB[M2]} quality leads"; d_ch.width = 19; d_ch.height = 10.5; d_ch.legend.position = "b"
+    d_ch.add_data(Reference(wd, min_col=17, max_col=18, min_row=3, max_row=3 + n), titles_from_data=True); d_ch.set_categories(cat2)
+    d_ch.series[0].graphicalProperties.solidFill = "9DB2D6"; d_ch.series[1].graphicalProperties.solidFill = TEAL
+    for sr_ in d_ch.series: dlabels(sr_, "0%")
+    d_ch.x_axis.scaling.orientation = "maxMin"; d_ch.x_axis.delete = False; d_ch.y_axis.delete = False; d_ch.y_axis.number_format = "0%"; d_ch.y_axis.majorGridlines = None
+    ws.add_chart(d_ch, f"H{gr + 3 + 22}")
     # ---- caveats
-    vr = cr + 2 * 19 + 1
+    vr = gr + 3 + 22 * 2 + 1
     ws.cell(vr, 2, "HOW TO READ THIS PAGE · DATA NOTES").font = fnt(True, "FFFFFF", 11)
     for ci in range(2, 14): ws.cell(vr, ci).fill = fill(GREY)
     notes = [
