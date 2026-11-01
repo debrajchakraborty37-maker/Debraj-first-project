@@ -32,6 +32,9 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **Adhira & Appa Toys Meta data received (2026-10-31):** one campaign 'E_Adhira & Appa Toys_23092026' (Sep ₹23,215.85 / Oct ₹103,272.73); ad-set and ad exports reconcile exactly. Toys now has CPL/CPQL. Rule: Meta exports can carry a first SUMMARY row with a blank Campaign name (the period total) — `load_meta` ignores blank-name rows so spend is never double counted (none of the other 11 exports had one).
 - **Slicers:** user confirmed (2026-10-31) the Master Pivot slicers work in desktop Excel.
 
+## 2026-11-01 — New data pack analysed (no report built yet)
+- Data.zip = 12 Meta accounts × 3 levels (Sep–Oct, all to 31 Oct), LeadData1 (all Sep), LeadData2 (all Oct to 31 Oct), FWLeads (same as before, to 27 Oct). Full findings in `docs/DATA_INVENTORY_2026-11-01.md`. User asked Brio to analyse and remember it, then wait for instructions.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.
