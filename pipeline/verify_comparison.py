@@ -34,7 +34,7 @@ raw_leads = pd.concat([pd.read_csv(os.path.join(LEADS, rc.lead_file(m)), low_mem
                                    usecols=["Lead id", "Status", "Lead Source", "Brand", "Created On", "Facebook Campaign Name", "Facebook Ad Set ID"]).assign(M=m) for m in MONTHS], ignore_index=True)
 raw_leads["cr"] = pd.to_datetime(raw_leads["Created On"], format="%d/%m/%Y %H:%M:%S")
 assert (raw_leads["cr"].dt.strftime("%b") == raw_leads["M"]).all()
-nm_ = raw_leads[(raw_leads["Lead Source"] == "Facebook") & ~raw_leads["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~raw_leads["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
+nm_ = raw_leads[raw_leads["Lead Source"].isin(rc.LEAD_SOURCES) & ~raw_leads["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~raw_leads["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
 EV = {k: set(v) for k, v in nm_.groupby("Facebook Ad Set ID")["Facebook Campaign Name"]}
 FWRE = "(?i)" + CFG["fw_exclusion_regex"]
 
@@ -48,7 +48,7 @@ def meta_month(prefix, d):
 def expected_for(name, spec):
     """returns dict month -> dict(spend, basis_leads, quality, outside, nocap) and per-line dict (camp,month)->(spend, leads, quality, attr)"""
     src = spec["source"]; dirs = {"meta_experts": METAX, "comp": COMP}
-    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0) for m in MONTHS}
+    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0, wa=0) for m in MONTHS}
     def put(m, camp, attr, leads=0, q=0, spend=0.0):
         k = (camp, m); a = lines.get(k, [0.0, 0, 0, attr]); a[0] += spend; a[1] += leads; a[2] += q; lines[k] = a
     if src == "daewoo_reports":
@@ -72,12 +72,14 @@ def expected_for(name, spec):
     if src == "fw_leads":
         L = pd.read_csv(os.path.join(COMP, CFG["fw_lead_file"]), low_memory=False, usecols=["Status", "Lead Source", "Created On", "Facebook Campaign Name"])
         L["cr"] = pd.to_datetime(L["Created On"], format="%d/%m/%Y %H:%M:%S", errors="coerce"); L["m"] = L["cr"].dt.strftime("%b")
-        f = L[L["m"].isin(MONTHS) & L["Lead Source"].fillna("").str.lower().str.replace(r"\s+", "", regex=True).eq("facebook")]
-        rows = [(r["m"], (r["Facebook Campaign Name"] if isinstance(r["Facebook Campaign Name"], str) and r["Facebook Campaign Name"] not in ("_", "") else None), r["Status"]) for _, r in f.iterrows()]
+        okn = {str(x).lower().replace(" ", "") for x in rc.LEAD_SOURCES}
+        f = L[L["m"].isin(MONTHS) & L["Lead Source"].fillna("").str.lower().str.replace(r"\s+", "", regex=True).isin(okn)]
+        rows = [(r["m"], (r["Facebook Campaign Name"] if isinstance(r["Facebook Campaign Name"], str) and r["Facebook Campaign Name"] not in ("_", "") else None), r["Status"],
+                 str(r["Lead Source"]).lower().replace(" ", "") == "whatsappcloudapi") for _, r in f.iterrows()]
     else:
         c = raw_leads[raw_leads["Brand"].isin(spec["crm_brand_values"])]
         c = c[~c["Facebook Campaign Name"].fillna("").str.match(FWRE)]
-        c = c[c["Lead Source"] == "Facebook"]
+        c = c[c["Lead Source"].isin(rc.LEAD_SOURCES)]
         rows = []
         for _, r in c.iterrows():
             cn = r["Facebook Campaign Name"] if isinstance(r["Facebook Campaign Name"], str) else "_"
@@ -85,8 +87,8 @@ def expected_for(name, spec):
                 s = EV.get(r["Facebook Ad Set ID"]); rn = next(iter(s)) if s and len(s) == 1 else None
                 if rn and re.match(FWRE, rn): continue      # FW ad set -> FW lead, excluded
             else: rn = cn
-            rows.append((r["M"], rn, r["Status"]))
-    for m, rn, st in rows:
+            rows.append((r["M"], rn, r["Status"], r["Lead Source"] == "Whatsapp Cloud API"))
+    for m, rn, st, wa in rows:
         q = 1 if st in QUAL else 0
         if rn is None: attr = NOCAP
         elif rn in mc: attr = "Campaign in Meta export"
@@ -95,7 +97,7 @@ def expected_for(name, spec):
         put(m, camp, attr, 1, q)
         if attr == OUTSIDE: tot[m]["outside"] += 1
         else:
-            tot[m]["leads"] += 1; tot[m]["quality"] += q
+            tot[m]["leads"] += 1; tot[m]["quality"] += q; tot[m]["wa"] += int(wa)
             if attr == NOCAP: tot[m]["nocap"] += 1
     return tot, lines
 
@@ -123,6 +125,7 @@ for b, tot in EXP.items():
         cmp(f"{b}|{m}|leads", cmpws.cell(r, 4 + mi).value, tot[m]["leads"]); cmp(f"{b}|{m}|quality", cmpws.cell(r, 11 + mi).value, tot[m]["quality"])
         cmp(f"{b}|{m}|CPL", cmpws.cell(r, 6 + mi).value, mm[mi]["cpl"]); cmp(f"{b}|{m}|Q%", cmpws.cell(r, 16 + mi).value, mm[mi]["qp"]); cmp(f"{b}|{m}|CPQL", cmpws.cell(r, 20 + mi).value, mm[mi]["cpql"])
         cmp(f"{b}|{m}|outside", cmpws.cell(r, 30 + mi).value, tot[m]["outside"]); cmp(f"{b}|{m}|nocap", cmpws.cell(r, 32 + mi).value, tot[m]["nocap"])
+        cmp(f"{b}|{m}|whatsapp", cmpws.cell(r, 34 + mi).value, tot[m]["wa"])
     a, c_ = mm[0], mm[1]
     ch = lambda x, y: (y - x) if isinstance(x, (int, float)) and isinstance(y, (int, float)) else DASH
     pc = lambda x, y: (y / x - 1) if isinstance(x, (int, float)) and isinstance(y, (int, float)) and x != 0 else DASH

@@ -35,6 +35,13 @@ Newest last. Each line: what the user said / chose → what we do → why.
 ## 2026-11-01 — New data pack analysed (no report built yet)
 - Data.zip = 12 Meta accounts × 3 levels (Sep–Oct, all to 31 Oct), LeadData1 (all Sep), LeadData2 (all Oct to 31 Oct), FWLeads (same as before, to 27 Oct). Full findings in `docs/DATA_INVENTORY_2026-11-01.md`. User asked Brio to analyse and remember it, then wait for instructions.
 
+## 2026-11-01 — Brand Comparison report rebuilt on the new data pack (Oct 1–31)
+- **User answers:** add `Carlton_Salon_MF` to Carlton (yes); data must be **1 Oct – 31 Oct**; do NOT align the 7 brand reports now (they stay as delivered); **include WhatsApp leads**.
+- **Data:** Meta = new exports (all to 31 Oct); CRM = `LeadData1.csv` (all Sep) + `LeadData2.csv` (all Oct to 31 Oct 23:59); FW = `FWLeads.csv`. Config: `lead_files`, `lead_sources` = [Facebook, Whatsapp Cloud API], `fw_lead_file`, Toys prefix `A-&-A-Toys`; Oct no longer flagged partial.
+- **WhatsApp leads** (Lead Source 'Whatsapp Cloud API', click-to-WhatsApp ads) are counted with Facebook leads in CPL / Quality Leads / Quality % / CPQL. They match Meta's 'messaging conversations' (Adhira & Appa Sep 3,668 vs 3,609). Most have no campaign name → 'campaign not determinable' (kept in cost basis). Comparison tab shows WhatsApp leads per brand (green block, right). Brand reports unaffected (their `lead_sources` default = Facebook).
+- **Daewoo stays on its own CRM reports** for both months: only 391 of the Oct report's 1,853 leads exist in LeadData (it holds a fraction of Daewoo's leads), so LeadData cannot replace it. Consequence: Daewoo October = 1–30 Oct (report) because Daewoo's 31 Oct leads were not supplied, even though the new Daewoo Meta export runs to 31 Oct (₹1,415,611). Ask the user for the Daewoo report/leads to 31 Oct to extend it.
+- **Cut-offs now:** both months complete, except FW leads (campaign stopped 27 Oct) and Daewoo Oct (to 30 Oct).
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

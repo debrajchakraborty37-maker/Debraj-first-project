@@ -22,6 +22,8 @@ MONTH_LIST = ", ".join(MONTHS) + f" {YEAR}"                                     
 FILE_TAG = f"{FIRST}-{LAST}{YEAR}" if N > 1 else f"{FIRST}{YEAR}"               # Jul-Oct2026
 TOTAL_LABEL = f"{PERIOD} total"
 LEAD_FILE_PATTERN = CFG["lead_file_pattern"]
+LEAD_FILES = CFG.get("lead_files", {})                       # optional explicit file name per month key (e.g. LeadData1.csv)
+LEAD_SOURCES = CFG.get("lead_sources", ["Facebook"])         # CRM Lead Source values that count as Meta-ad leads
 QUAL = CFG["qualified_statuses"]
 MEET = CFG["meeting_statuses"]
 FW_REGEX = CFG["fw_exclusion_regex"]
@@ -33,7 +35,7 @@ _END = {"txt": "the end of the extract"}
 
 
 def lead_file(key):
-    return LEAD_FILE_PATTERN.format(name=MNAME[key], year=YEAR)
+    return LEAD_FILES.get(key) or LEAD_FILE_PATTERN.format(name=MNAME[key], year=YEAR)
 
 
 def set_data_end(dt):
