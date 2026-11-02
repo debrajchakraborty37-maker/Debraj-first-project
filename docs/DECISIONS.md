@@ -42,6 +42,10 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **Daewoo stays on its own CRM reports** for both months: only 391 of the Oct report's 1,853 leads exist in LeadData (it holds a fraction of Daewoo's leads), so LeadData cannot replace it. Consequence: Daewoo October = 1–30 Oct (report) because Daewoo's 31 Oct leads were not supplied, even though the new Daewoo Meta export runs to 31 Oct (₹1,415,611). Ask the user for the Daewoo report/leads to 31 Oct to extend it.
 - **Cut-offs now:** both months complete, except FW leads (campaign stopped 27 Oct) and Daewoo Oct (to 30 Oct).
 
+## 2026-11-02 — Website leads added; lead sources made visible
+- **User:** include 'Website' and 'WhatsApp Cloud API' leads. WhatsApp was already included (6,189 leads) but only visible in a far-right column; **Website added** (151 leads: Carlton Oct 91 net, Adhira & Appa 16, Natuf 5, FW 1). Config `lead_sources` = [Facebook, Whatsapp Cloud API, Website].
+- **Visibility:** Master Dashboard has a 'Where the leads come from' section (stacked charts by brand for Sep and Oct); Comparison tab green block lists WhatsApp and Website leads per brand. Verifier checks both. Other CRM sources (Google Ads 52, Organic Dm 38, Manual 1, Excel uploads, GOOGLE_SHEETS) are still NOT counted.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

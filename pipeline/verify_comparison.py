@@ -48,7 +48,7 @@ def meta_month(prefix, d):
 def expected_for(name, spec):
     """returns dict month -> dict(spend, basis_leads, quality, outside, nocap) and per-line dict (camp,month)->(spend, leads, quality, attr)"""
     src = spec["source"]; dirs = {"meta_experts": METAX, "comp": COMP}
-    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0, wa=0) for m in MONTHS}
+    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0, wa=0, web=0) for m in MONTHS}
     def put(m, camp, attr, leads=0, q=0, spend=0.0):
         k = (camp, m); a = lines.get(k, [0.0, 0, 0, attr]); a[0] += spend; a[1] += leads; a[2] += q; lines[k] = a
     if src == "daewoo_reports":
@@ -75,7 +75,7 @@ def expected_for(name, spec):
         okn = {str(x).lower().replace(" ", "") for x in rc.LEAD_SOURCES}
         f = L[L["m"].isin(MONTHS) & L["Lead Source"].fillna("").str.lower().str.replace(r"\s+", "", regex=True).isin(okn)]
         rows = [(r["m"], (r["Facebook Campaign Name"] if isinstance(r["Facebook Campaign Name"], str) and r["Facebook Campaign Name"] not in ("_", "") else None), r["Status"],
-                 str(r["Lead Source"]).lower().replace(" ", "") == "whatsappcloudapi") for _, r in f.iterrows()]
+                 str(r["Lead Source"]).lower().replace(" ", "")) for _, r in f.iterrows()]
     else:
         c = raw_leads[raw_leads["Brand"].isin(spec["crm_brand_values"])]
         c = c[~c["Facebook Campaign Name"].fillna("").str.match(FWRE)]
@@ -87,8 +87,8 @@ def expected_for(name, spec):
                 s = EV.get(r["Facebook Ad Set ID"]); rn = next(iter(s)) if s and len(s) == 1 else None
                 if rn and re.match(FWRE, rn): continue      # FW ad set -> FW lead, excluded
             else: rn = cn
-            rows.append((r["M"], rn, r["Status"], r["Lead Source"] == "Whatsapp Cloud API"))
-    for m, rn, st, wa in rows:
+            rows.append((r["M"], rn, r["Status"], str(r["Lead Source"]).lower().replace(" ", "")))
+    for m, rn, st, srcn in rows:
         q = 1 if st in QUAL else 0
         if rn is None: attr = NOCAP
         elif rn in mc: attr = "Campaign in Meta export"
@@ -97,7 +97,7 @@ def expected_for(name, spec):
         put(m, camp, attr, 1, q)
         if attr == OUTSIDE: tot[m]["outside"] += 1
         else:
-            tot[m]["leads"] += 1; tot[m]["quality"] += q; tot[m]["wa"] += int(wa)
+            tot[m]["leads"] += 1; tot[m]["quality"] += q; tot[m]["wa"] += int(srcn == "whatsappcloudapi"); tot[m]["web"] += int(srcn == "website")
             if attr == NOCAP: tot[m]["nocap"] += 1
     return tot, lines
 
@@ -125,7 +125,7 @@ for b, tot in EXP.items():
         cmp(f"{b}|{m}|leads", cmpws.cell(r, 4 + mi).value, tot[m]["leads"]); cmp(f"{b}|{m}|quality", cmpws.cell(r, 11 + mi).value, tot[m]["quality"])
         cmp(f"{b}|{m}|CPL", cmpws.cell(r, 6 + mi).value, mm[mi]["cpl"]); cmp(f"{b}|{m}|Q%", cmpws.cell(r, 16 + mi).value, mm[mi]["qp"]); cmp(f"{b}|{m}|CPQL", cmpws.cell(r, 20 + mi).value, mm[mi]["cpql"])
         cmp(f"{b}|{m}|outside", cmpws.cell(r, 30 + mi).value, tot[m]["outside"]); cmp(f"{b}|{m}|nocap", cmpws.cell(r, 32 + mi).value, tot[m]["nocap"])
-        cmp(f"{b}|{m}|whatsapp", cmpws.cell(r, 34 + mi).value, tot[m]["wa"])
+        cmp(f"{b}|{m}|whatsapp", cmpws.cell(r, 34 + mi).value, tot[m]["wa"]); cmp(f"{b}|{m}|website", cmpws.cell(r, 36 + mi).value, tot[m]["web"])
     a, c_ = mm[0], mm[1]
     ch = lambda x, y: (y - x) if isinstance(x, (int, float)) and isinstance(y, (int, float)) else DASH
     pc = lambda x, y: (y / x - 1) if isinstance(x, (int, float)) and isinstance(y, (int, float)) and x != 0 else DASH
@@ -217,7 +217,10 @@ for k, b in enumerate(list(EXP)):
     sp_tot = sum(S[x][0][m2]["spend"] for x in S); q_tot = sum(S[x][0][m2]["quality"] for x in S if S[x][0][m2]["spend"] > 0)
     cmp(f"CHART {b} spend share", dd.cell(r, 17).value, (tot[m2]["spend"] / sp_tot) if tot[m2]["spend"] > 0 else 0.0)
     cmp(f"CHART {b} quality share", dd.cell(r, 18).value, (tot[m2]["quality"] / q_tot) if tot[m2]["spend"] > 0 else 0.0)
-nch = len([n for n in z.namelist() if re.match(r"xl/charts/chart\d+\.xml", n)]); cmp("number of charts on the workbook", nch, 8)
+nch = len([n for n in z.namelist() if re.match(r"xl/charts/chart\d+\.xml", n)]); cmp("number of charts on the workbook", nch, 10)
+for k, b in enumerate(list(EXP)):   # leads-by-source helper (Dashboard_Data T..Y)
+    for mi, m in enumerate(MONTHS):
+        t_ = EXP[b][m]; cmp(f"SRC {b} {m} facebook", dd.cell(4 + k, 20 + 3 * mi).value, t_["leads"] - t_["wa"] - t_["web"]); cmp(f"SRC {b} {m} whatsapp", dd.cell(4 + k, 21 + 3 * mi).value, t_["wa"]); cmp(f"SRC {b} {m} website", dd.cell(4 + k, 22 + 3 * mi).value, t_["web"])
 print(f"BRAND COMPARISON CHECKS: {checked:,} | MISMATCHES: {len(bad)}")
 for x in bad[:30]: print("  ", x)
 sys.exit(1 if bad else 0)
