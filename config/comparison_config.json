@@ -160,5 +160,6 @@
   "lead_sources": [
     "*"
   ],
-  "period_note": "1 Sep – 31 Oct 2026 (both months complete). Exception: FW leads end 27 Oct (FW lead campaign stopped). Daewoo comes from its own CRM reports (Oct = 1–31 Oct)."
+  "period_note": "1 Sep – 31 Oct 2026 (both months complete). Exception: FW leads end 27 Oct (FW lead campaign stopped). Daewoo comes from its own CRM reports (Oct = 1–31 Oct).",
+  "outside_in_cpl": true
 }

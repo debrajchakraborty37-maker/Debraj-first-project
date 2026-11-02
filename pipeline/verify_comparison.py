@@ -96,7 +96,7 @@ def expected_for(name, spec):
         camp = rn if rn is not None else "Facebook leads – campaign not determinable"
         put(m, camp, attr, 1, q)
         if attr == OUTSIDE: tot[m]["outside"] += 1
-        else:
+        if attr != OUTSIDE or CFG.get("outside_in_cpl", False):
             tot[m]["leads"] += 1; tot[m]["quality"] += q; tot[m]["wa"] += int(srcn == "whatsappcloudapi"); tot[m]["web"] += int(srcn == "website"); tot[m]["fb"] += int(srcn in ("facebook",)); tot[m]["oth"] += int(srcn not in ("facebook", "whatsappcloudapi", "website"))
             if attr == NOCAP: tot[m]["nocap"] += 1
     return tot, lines
@@ -160,13 +160,13 @@ for b, lines in ELINES.items():
     for m in MONTHS:
         tot = EXP[b][m]
         cmp(f"PDSUM|{b}|{m}|spend", sum(v[0] for (bb, c, mm), v in PD.items() if bb == b and mm == m), tot["spend"], 1e-9)
-        cmp(f"PDSUM|{b}|{m}|leads", sum(v[1] for (bb, c, mm), v in PD.items() if bb == b and mm == m), tot["leads"] + tot["outside"])
+        cmp(f"PDSUM|{b}|{m}|leads", sum(v[1] for (bb, c, mm), v in PD.items() if bb == b and mm == m), tot["leads"] + (0 if CFG.get("outside_in_cpl", False) else tot["outside"]))
 # ------------------------------------------------------------------ Data_Leads counts per brand/month
 dl = pd.DataFrame([r[:8] for r in wb["Data_Leads"].iter_rows(min_row=2, values_only=True) if r[0] is not None], columns=["Month", "Brand", "ref", "src", "status", "line", "attr", "q"])
 for b in EXP:
     for m in MONTHS:
         g = dl[(dl["Brand"] == b) & (dl["Month"] == MLAB[m])]
-        cmp(f"DL|{b}|{m}|rows", len(g), EXP[b][m]["leads"] + EXP[b][m]["outside"]); cmp(f"DL|{b}|{m}|quality(all)", int(pd.to_numeric(g["q"]).sum()), sum(v[2] for (c, mm), v in ELINES[b].items() if mm == m))
+        cmp(f"DL|{b}|{m}|rows", len(g), EXP[b][m]["leads"] + (0 if CFG.get("outside_in_cpl", False) else EXP[b][m]["outside"])); cmp(f"DL|{b}|{m}|quality(all)", int(pd.to_numeric(g["q"]).sum()), sum(v[2] for (c, mm), v in ELINES[b].items() if mm == m))
 # ------------------------------------------------------------------ Master Pivot body (plain values) vs Pivot_Data
 mp = wb["Master Pivot"]; order = {}
 for r in range(17, mp.max_row + 1):

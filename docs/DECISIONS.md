@@ -55,6 +55,10 @@ Newest last. Each line: what the user said / chose → what we do → why.
 ## 2026-11-02 — Daewoo October now 1–31 Oct (1,950 leads)
 - **User:** Daewoo lead count is 1,950 → supplied `Daewoo x ShootOrder … MTD-1-31Oct-FTD-31-Oct2026.xlsx` (Data_CRM 1,950 rows, spend ₹1,415,611.46, qualified flag 466). Config `daewoo_reports.Oct` points to it; Daewoo Oct CPL ₹726, CPQL ₹3,038. Daewoo is no longer an exception to the 1–31 Oct period (only FW ends 27 Oct).
 
+## 2026-11-02 — Leads on campaigns outside the Meta export now INCLUDED in CPL
+- **User:** "Include those leads in CPL also." Reverses the 2026-10-31 cost-basis rule. Config `outside_in_cpl: true` (builder + verifier honour it; false restores the old rule). Lead counts now = every lead in LeadData1/2 (10 brands, minus FW-campaign leads) and FWLeads.
+- Effect: Natuf Sep CPL ₹1,475 → ₹207 (8,010 leads; 6,884 sit on in-house campaigns whose spend is NOT in the Meta files, so CPL is understated), Oct ₹712 → ₹447; FW Sep ₹123 → ₹120; Carlton Sep ₹1,579 → ₹1,478; Adhira & Appa Sep ₹220 → ₹213. Quality Lead % for Natuf falls (225 / 8,010 in Sep) for the same reason. The orange columns still list these leads and the notes warn about the understatement.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.
