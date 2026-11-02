@@ -33,7 +33,7 @@ ATTR_OK, ATTR_NOCAP, ATTR_NOTIN = "Campaign in Meta export", "Campaign not deter
 ATTR_NOEXP = "No Meta export for this brand"
 NOCAP_LABEL = "Facebook leads – campaign not determinable"
 LEAD_SRC = rcfg.LEAD_SOURCES                                  # CRM Lead Source values counted as Meta-ad leads (Facebook + WhatsApp)
-LEAD_SRC_TXT = " + ".join("WhatsApp" if "whatsapp" in x.lower() else x for x in LEAD_SRC)   # "Facebook + WhatsApp + Website"
+LEAD_SRC_TXT = "all lead sources" if rcfg.ALL_SOURCES else " + ".join("WhatsApp" if "whatsapp" in x.lower() else x for x in LEAD_SRC)   # "Facebook + WhatsApp + Website"
 CUTOFF = CFG.get("period_note", "")                           # period / cut-off sentence (config)
 NAVY, BLUE, TEAL, GREY, LIGHT, GREEN, RED = "1F3864", "2E5090", "0E7C7B", "7F7F7F", "E8EEF7", "00803C", "C00000"
 DASH = "–"
@@ -47,7 +47,7 @@ def norm(s): return unicodedata.normalize("NFKC", str(s)).strip()
 # =============================================================== data preparation
 def attribute(crm, mcamps, idev):
     """Meta-ad leads (Lead Source in config lead_sources: Facebook + WhatsApp) -> (campaign label, attribution class). Same rules as build_brand_report (Ad Set ID evidence, FW ad sets dropped)."""
-    fb = crm["Lead Source"].isin(LEAD_SRC)
+    fb = rcfg.src_mask(crm["Lead Source"])
     cn = crm["Facebook Campaign Name"].fillna("_")
     named = ~cn.isin(["_", ""])
     rc_ = pd.Series([None] * len(crm), index=crm.index, dtype=object)
@@ -144,12 +144,12 @@ def fw_brand(name, spec, dirs):
     L_ = L_[L_["Month"].isin(MONTHS)].reset_index(drop=True)
     srcnorm = lambda x: str(x).lower().replace(" ", "")
     okset = {srcnorm(x) for x in LEAD_SRC}
-    isfb = L_["Lead Source"].fillna("").map(srcnorm).isin(okset)
+    isfb = pd.Series(True, index=L_.index) if rcfg.ALL_SOURCES else L_["Lead Source"].fillna("").map(srcnorm).isin(okset)
     f = L_[isfb].copy()
     cn = f["Facebook Campaign Name"].fillna("_")
     line = np.where(cn.isin(["_", ""]), NOCAP_LABEL, cn)
     attr = np.where(cn.isin(["_", ""]), ATTR_NOCAP, np.where(cn.isin(mcamps), ATTR_OK, ATTR_NOTIN))
-    leads = pd.DataFrame({"month": f["Month"].values, "ref": ["FW-" + str(i + 2) for i in f.index], "source": np.where(f["Lead Source"].fillna("").map(srcnorm).eq("whatsappcloudapi"), "Whatsapp Cloud API", np.where(f["Lead Source"].fillna("").map(srcnorm).eq("website"), "Website", "Facebook")), "status": f["Status"].fillna("").values,
+    leads = pd.DataFrame({"month": f["Month"].values, "ref": ["FW-" + str(i + 2) for i in f.index], "source": f["Lead Source"].fillna("(blank)").map(lambda x: {"facebook": "Facebook", "whatsappcloudapi": "Whatsapp Cloud API", "website": "Website"}.get(srcnorm(x), x)).values, "status": f["Status"].fillna("").values,
                           "line": line, "attr": attr, "quality": f["Status"].isin(QUAL).astype(int).values, "qual_formula": True})
     notes = dict(source="Kustard–FW Meta export + FW lead file (" + LEAD_SRC_TXT + " leads only)", meta_file=mfile, meta_daily=False, crm_all=len(L_), crm_nonfb=int((~isfb).sum()),
                  fw_excluded_name=0, fw_excluded_adset=0, last_lead=L_["cr"].max(), variants={}, meta_total=float(g["Spend"].sum()), fw_all_leads=len(L_),
@@ -317,8 +317,11 @@ def build_comparison(ws, disp, prng, nl):
     for i, h in enumerate([f"WhatsApp leads {s1} (inside CPL basis)", f"WhatsApp leads {s2} (inside CPL basis)", f"Website leads {s1} (inside CPL basis)", f"Website leads {s2} (inside CPL basis)"], 34):
         c = ws.cell(5, i, h); c.font = fnt(True, "FFFFFF", 8); c.fill = fill("25A244"); c.alignment = Alignment(wrap_text=True, vertical="center")
         ws.column_dimensions[L(i)].width = 16
-    ws.cell(4, 30, "Lead coverage (for transparency)"); ws.merge_cells(start_row=4, start_column=30, end_row=4, end_column=37)
-    for ci in range(30, 38): ws.cell(4, ci).fill = fill("B45F06" if ci < 34 else "25A244"); ws.cell(4, ci).font = fnt(True, "FFFFFF", 10)
+    for i, h in enumerate([f"Facebook leads {s1} (inside CPL basis)", f"Facebook leads {s2} (inside CPL basis)", f"Other sources {s1} (inside CPL basis)", f"Other sources {s2} (inside CPL basis)"], 38):
+        c = ws.cell(5, i, h); c.font = fnt(True, "FFFFFF", 8); c.fill = fill("2E5090"); c.alignment = Alignment(wrap_text=True, vertical="center")
+        ws.column_dimensions[L(i)].width = 16
+    ws.cell(4, 30, "Lead coverage (for transparency)"); ws.merge_cells(start_row=4, start_column=30, end_row=4, end_column=41)
+    for ci in range(30, 42): ws.cell(4, ci).fill = fill("B45F06" if ci < 34 else ("25A244" if ci < 38 else "2E5090")); ws.cell(4, ci).font = fnt(True, "FFFFFF", 10)
     q = lambda a, mi, ex=False: f'SUMIFS({prng(a)},{prng("A")},"{MLAB[MONTHS[mi]]}",{prng("B")},$A{{r}}' + (f',{prng("D")},"<>{ATTR_NOTIN}"' if ex else "") + ")"
     qa = lambda a, mi, attr: f'SUMIFS({prng(a)},{prng("A")},"{MLAB[MONTHS[mi]]}",{prng("B")},$A{{r}},{prng("D")},"{attr}")'
     for k, name in enumerate(disp + ["All brands with Meta spend"]):
@@ -329,6 +332,8 @@ def build_comparison(ws, disp, prng, nl):
                 ws.cell(r, 2 + mi, "=" + q("E", mi).format(r=r)); ws.cell(r, 4 + mi, "=" + q("F", mi, True).format(r=r))
                 ws.cell(r, 11 + mi, "=" + q("G", mi, True).format(r=r))
                 ws.cell(r, 30 + mi, "=" + qa("F", mi, ATTR_NOTIN).format(r=r)); ws.cell(r, 32 + mi, "=" + qa("F", mi, ATTR_NOCAP).format(r=r))
+                ws.cell(r, 38 + mi, f'=COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"Facebook",Data_Leads!$G$2:$G${nl},"<>{ATTR_NOTIN}")+COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"Daewoo CRM (report)",Data_Leads!$G$2:$G${nl},"<>{ATTR_NOTIN}")')
+                ws.cell(r, 40 + mi, f"={L(4 + mi)}{r}-{L(34 + mi)}{r}-{L(36 + mi)}{r}-{L(38 + mi)}{r}")
                 for off, srcname in ((34, "Whatsapp Cloud API"), (36, "Website")):
                     ws.cell(r, off + mi, f'=COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"{srcname}",Data_Leads!$G$2:$G${nl},"<>{ATTR_NOTIN}")')
             for mi in (0, 1):
@@ -338,7 +343,7 @@ def build_comparison(ws, disp, prng, nl):
                 ws.cell(r, 2 + mi, f"=SUM({L(2 + mi)}{CMP_FIRST}:{L(2 + mi)}{last})")
                 ws.cell(r, 4 + mi, f"=SUM({L(26 + mi)}{CMP_FIRST}:{L(26 + mi)}{last})")
                 ws.cell(r, 11 + mi, f"=SUM({L(28 + mi)}{CMP_FIRST}:{L(28 + mi)}{last})")
-                ws.cell(r, 30 + mi, f"=SUM({L(30 + mi)}{CMP_FIRST}:{L(30 + mi)}{last})"); ws.cell(r, 32 + mi, f"=SUM({L(32 + mi)}{CMP_FIRST}:{L(32 + mi)}{last})"); ws.cell(r, 34 + mi, f"=SUM({L(34 + mi)}{CMP_FIRST}:{L(34 + mi)}{last})"); ws.cell(r, 36 + mi, f"=SUM({L(36 + mi)}{CMP_FIRST}:{L(36 + mi)}{last})")
+                ws.cell(r, 30 + mi, f"=SUM({L(30 + mi)}{CMP_FIRST}:{L(30 + mi)}{last})"); ws.cell(r, 32 + mi, f"=SUM({L(32 + mi)}{CMP_FIRST}:{L(32 + mi)}{last})"); ws.cell(r, 34 + mi, f"=SUM({L(34 + mi)}{CMP_FIRST}:{L(34 + mi)}{last})"); ws.cell(r, 36 + mi, f"=SUM({L(36 + mi)}{CMP_FIRST}:{L(36 + mi)}{last})"); ws.cell(r, 38 + mi, f"=SUM({L(38 + mi)}{CMP_FIRST}:{L(38 + mi)}{last})"); ws.cell(r, 40 + mi, f"=SUM({L(40 + mi)}{CMP_FIRST}:{L(40 + mi)}{last})")
         for mi in (0, 1):
             sp, ld, ql = f"{L(2 + mi)}{r}", f"{L(4 + mi)}{r}", f"{L(11 + mi)}{r}"
             ws.cell(r, 6 + mi, f'=IFERROR(IF(AND({ld}>0,{sp}>0),{sp}/{ld},"{DASH}"),"{DASH}")')
@@ -584,20 +589,20 @@ def build_dashboard(ws, wd, disp, brands):
     sr_ = gr + 3 + 22 * 2 + 1
     ws.cell(sr_, 2, f"WHERE THE LEADS COME FROM — {LEAD_SRC_TXT} (leads inside the cost basis, by brand)").font = fnt(True, "FFFFFF", 11)
     for ci in range(2, 14): ws.cell(sr_, ci).fill = fill(TEAL)
-    note_ = ws.cell(sr_ + 1, 2, "Every lead counted in Cost per Lead comes from one of these three sources. 'Facebook' also includes Daewoo's own-CRM leads (Daewoo comes from its reports). WhatsApp leads are mostly Adhira & Appa and Carlton; Website leads are few.")
+    note_ = ws.cell(sr_ + 1, 2, "Every lead in the lead data counts toward Cost per Lead. 'Facebook' includes Daewoo's own-CRM leads (Daewoo comes from its reports). 'Other sources' = Google Ads, Organic DM, Manual, Excel bulk uploads etc. (mainly FW Excel uploads).")
     note_.alignment = Alignment(wrap_text=True, vertical="top"); note_.font = fnt(False, "404040", 9); ws.merge_cells(start_row=sr_ + 1, start_column=2, end_row=sr_ + 1, end_column=13); ws.row_dimensions[sr_ + 1].height = 30
-    gh2 = [f"Facebook {MLAB[M1]}", f"WhatsApp {MLAB[M1]}", f"Website {MLAB[M1]}", f"Facebook {MLAB[M2]}", f"WhatsApp {MLAB[M2]}", f"Website {MLAB[M2]}"]
+    gh2 = [f"Facebook {MLAB[M1]}", f"WhatsApp {MLAB[M1]}", f"Website {MLAB[M1]}", f"Other {MLAB[M1]}", f"Facebook {MLAB[M2]}", f"WhatsApp {MLAB[M2]}", f"Website {MLAB[M2]}", f"Other {MLAB[M2]}"]
     for i, h in enumerate(gh2, 20):
         c = wd.cell(3, i, h); c.font = fnt(True, "FFFFFF", 9); c.fill = fill(TEAL); c.alignment = Alignment(wrap_text=True); wd.column_dimensions[L(i)].width = 16
     for k in range(n):
         r = 4 + k; cr_ = CMP_FIRST + k
         for mi in (0, 1):
-            tot_ = f"{C}{L(4 + mi)}{cr_}"; wa_ = f"{C}{L(34 + mi)}{cr_}"; we_ = f"{C}{L(36 + mi)}{cr_}"
-            wd.cell(r, 20 + 3 * mi, f"={tot_}-{wa_}-{we_}"); wd.cell(r, 21 + 3 * mi, f"={wa_}"); wd.cell(r, 22 + 3 * mi, f"={we_}")
-    for k, (c0, ttl) in enumerate(((20, f"E · Leads by source — {MLAB[M1]}"), (23, f"F · Leads by source — {MLAB[M2]}"))):
+            fb_ = f"{C}{L(38 + mi)}{cr_}"; wa_ = f"{C}{L(34 + mi)}{cr_}"; we_ = f"{C}{L(36 + mi)}{cr_}"; ot_ = f"{C}{L(40 + mi)}{cr_}"
+            wd.cell(r, 20 + 4 * mi, f"={fb_}"); wd.cell(r, 21 + 4 * mi, f"={wa_}"); wd.cell(r, 22 + 4 * mi, f"={we_}"); wd.cell(r, 23 + 4 * mi, f"={ot_}")
+    for k, (c0, ttl) in enumerate(((20, f"E · Leads by source — {MLAB[M1]}"), (24, f"F · Leads by source — {MLAB[M2]}"))):
         ch = BarChart(); ch.type = "bar"; ch.grouping = "stacked"; ch.overlap = 100; ch.title = ttl; ch.width = 19; ch.height = 10.5; ch.legend.position = "b"
-        ch.add_data(Reference(wd, min_col=c0, max_col=c0 + 2, min_row=3, max_row=3 + n), titles_from_data=True); ch.set_categories(cat2)
-        for sr2, colr in zip(ch.series, ("9DB2D6", "25A244", "E07B00")): sr2.graphicalProperties.solidFill = colr
+        ch.add_data(Reference(wd, min_col=c0, max_col=c0 + 3, min_row=3, max_row=3 + n), titles_from_data=True); ch.set_categories(cat2)
+        for sr2, colr in zip(ch.series, ("9DB2D6", "25A244", "E07B00", "7F7F7F")): sr2.graphicalProperties.solidFill = colr
         ch.x_axis.scaling.orientation = "maxMin"; ch.x_axis.delete = False; ch.y_axis.delete = False; ch.y_axis.number_format = "#,##0"; ch.y_axis.majorGridlines = None
         ws.add_chart(ch, f"{'B' if k == 0 else 'H'}{sr_ + 3}")
     # ---- caveats
@@ -607,7 +612,7 @@ def build_dashboard(ws, wd, disp, brands):
     notes = [
         "• Cost Per Lead (CPL) = Meta spend ÷ CRM leads that came from Meta ads (" + LEAD_SRC_TXT + "). Quality Lead = lead that reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Quality Lead % = Quality Leads ÷ CRM leads. Cost Per Quality Lead (CPQL) = Meta spend ÷ Quality Leads.",
         "• " + CUTOFF + " Both months are therefore comparable like for like, except for FW (campaign stopped) and Daewoo (October to 30 Oct).",
-        "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ Facebook / WhatsApp leads in the FW lead file (bulk Excel uploads are not counted).",
+        "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ ALL leads in the FW lead file, including bulk Excel uploads (these carry no ad spend, so FW's CPL looks much lower than ad-only CPL).",
         "• Leads on campaigns whose spend is NOT in the supplied Meta files are left out of CPL, Quality % and CPQL so cost and leads match (" + OUTSIDE_TXT + "). They are listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads (no campaign name, ad set not mappable — common for WhatsApp leads) stay in.",
         *(["• " + nometa_text() + " has leads but no Meta spend in the supplied files, so its cost figures show a dash; its Quality Lead % is real."] if NOMETA else []),
         "• Open the Master Pivot tab for the interactive view (slicers need desktop Excel) and the Comparison tab for every number behind this page.",
@@ -637,7 +642,7 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
     items = []
     def add(area, check, res, detail): items.append((area, check, res, detail))
     add("All", "Period & cut-offs", "INFO", CUTOFF + " All Meta exports run to 31 Oct; the lead files run to 31 Oct 23:59 (September file = all of September). FW leads end 27 Oct because the FW lead campaign was stopped (confirmed by the user); the Daewoo October report ends 30 Oct.")
-    add("All", "Lead sources included", "INFO", "Lead Source = Facebook, 'Whatsapp Cloud API' (click-to-WhatsApp ads) and 'Website' are all counted as leads, per the user's request. Most WhatsApp leads carry no campaign name, so they sit on the 'campaign not determinable' line (kept in cost). The Master Dashboard shows leads by source for every brand; the Comparison tab lists WhatsApp and Website leads per brand (green block, right).")
+    add("All", "Lead sources included", "INFO", "Every lead in the lead data is counted, whatever its Lead Source (Facebook, 'Whatsapp Cloud API', Website, Google Ads, Organic Dm, Manual, Excel uploads, ...), per the user's request. Most WhatsApp leads carry no campaign name, so they sit on the 'campaign not determinable' line (kept in cost). The Master Dashboard shows leads by source for every brand; the Comparison tab lists WhatsApp and Website leads per brand (green block, right).")
     add("All", "Quality Lead definition", "INFO", "Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted (same as the 7 brand reports). Daewoo uses its own report flag.")
     add("All", "FW is a separate brand", "INFO", "FW-prefixed CRM brands / campaigns are excluded from every other brand and reported only under FW (FW_LeadData + Kustard–FW Meta).")
     add("Adhira & Appa", "TK variants included", "INFO", "'Adhira & Appa Tk UF/MF' leads sit on 'AAC | … | TN-Kerala' campaigns (TK = Tamil Nadu–Kerala), i.e. Adhira & Appa Coffee, so they are counted here. The earlier 7 brand reports excluded them — Adhira & Appa's September leads there are ~226 lower.")
@@ -653,11 +658,11 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
             continue
         extra = ""
         if b["name"] == "FW":
-            extra = f" FW lead file: {nt['fw_all_leads']:,} leads in {'/'.join(MONTHS)}; only {n_ld:,} are Facebook form leads (rest: bulk uploads {nt['fw_excel']:,} + other). No usable lead id (Lead Id is '_' on every row)."
+            extra = f" FW lead file: {nt['fw_all_leads']:,} leads in {'/'.join(MONTHS)}; {n_ld:,} are counted (of which bulk Excel uploads {nt['fw_excel']:,}). No usable lead id (Lead Id is '_' on every row)."
         nocap = int((ld["attr"] == ATTR_NOCAP).sum()); notin = int((ld["attr"] == ATTR_NOTIN).sum())
         add(b["display"], "Lead attribution", "WARN" if (nocap + notin) / max(n_ld, 1) > 0.3 else "INFO",
             f"{n_ld:,} {LEAD_SRC_TXT} leads ({int((ld['source'] == 'Whatsapp Cloud API').sum()):,} WhatsApp, {int((ld['source'] == 'Website').sum()):,} Website); {nocap:,} ({nocap / max(n_ld, 1):.0%}) campaign not determinable; {notin:,} ({notin / max(n_ld, 1):.0%}) on campaigns outside the Meta export (their spend is not in the cost); "
-            f"{nt['crm_nonfb']:,} leads from other sources are not counted; last lead {nt['last_lead']:%d %b %H:%M}." + extra)
+            f"{nt['crm_nonfb']:,} leads from sources not counted; last lead {nt['last_lead']:%d %b %H:%M}." + extra)
         add(b["display"], "Source files", "INFO", f"{nt['source']}" + (f"; Meta file {nt['meta_file']}" if nt.get("meta_file") else "") + (" (daily rows summed to months)" if nt.get("meta_daily") else "") + f"; Meta spend in period ₹{nt['meta_total']:,.2f}; {b['inactive_omitted']} Meta campaigns with no spend and no leads are omitted from the pivot.")
         if nt.get("blank_rows"):
             add(b["display"], "Meta summary row", "INFO", f"{nt['blank_rows']} summary row(s) with a blank campaign name (the Sep+Oct total Meta adds to the export) ignored so spend is not counted twice.")

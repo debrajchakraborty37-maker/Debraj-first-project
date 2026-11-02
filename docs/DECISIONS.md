@@ -46,6 +46,12 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **User:** include 'Website' and 'WhatsApp Cloud API' leads. WhatsApp was already included (6,189 leads) but only visible in a far-right column; **Website added** (151 leads: Carlton Oct 91 net, Adhira & Appa 16, Natuf 5, FW 1). Config `lead_sources` = [Facebook, Whatsapp Cloud API, Website].
 - **Visibility:** Master Dashboard has a 'Where the leads come from' section (stacked charts by brand for Sep and Oct); Comparison tab green block lists WhatsApp and Website leads per brand. Verifier checks both. Other CRM sources (Google Ads 52, Organic Dm 38, Manual 1, Excel uploads, GOOGLE_SHEETS) are still NOT counted.
 
+## 2026-11-02 — EVERY lead in the lead data is counted (Brand Comparison)
+- **User:** "add each & every lead from the lead data, otherwise the CPL will go high." Choices: the 10 LeadData brands take the lead count from the CRM lead data (all Lead Sources); **FW = count ALL FW leads** (incl. bulk Excel uploads); **Daewoo stays on its two reports**.
+- Config `lead_sources` = `["*"]` (= all sources; `report_config.src_mask`). 7 brand reports keep their default (Facebook only).
+- Effect: for the 10 brands only ~180 extra leads (Google Ads 52, Organic Dm 38, Manual 1, small Excel) → CPL moves ≤ ₹3. **FW** counts 10,142 Sep / 1,263 Oct leads (was 1,074 / 947) → FW CPL Sep ₹123 (was ≈₹1,160; ~9.1k Excel uploads carry no ad spend), Oct ₹723. Disclosed on the report.
+- Comparison tab: source split Facebook / WhatsApp / Website / Other (cols AL–AO); dashboard charts E/F have 4 series. Verifier: 6,156 checks, 0 mismatches.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

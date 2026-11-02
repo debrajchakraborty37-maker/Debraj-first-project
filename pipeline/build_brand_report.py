@@ -70,7 +70,7 @@ def load_crm(lead_dir, crm_brands):
     d["Month"] = d["Created"].dt.strftime("%b")
     # Ad Set ID -> campaign evidence from every Facebook lead (all brands) that carries a campaign name.
     # A Meta ad set belongs to exactly one campaign, so an ID is used only if all leads naming a campaign agree.
-    nm_ = d[d["Lead Source"].isin(rcfg.LEAD_SOURCES) & ~d["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~d["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
+    nm_ = d[rcfg.src_mask(d["Lead Source"]) & ~d["Facebook Campaign Name"].fillna("_").isin(["_", ""]) & ~d["Facebook Ad Set ID"].fillna("_").isin(["_", ""])]
     stats["idev"] = nm_.groupby("Facebook Ad Set ID")["Facebook Campaign Name"].agg(lambda x: set(x)).to_dict()
     inb = d[d["Brand"].isin(crm_brands)].copy()
     fw = inb["Facebook Campaign Name"].fillna("").str.match("(?i)" + rcfg.FW_REGEX)

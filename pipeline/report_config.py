@@ -1,6 +1,7 @@
 """Loads config/report_config.json — the single source of truth for months, status lists, FW rule and brand mapping.
 Override the file with the REPORT_CONFIG environment variable (used to test other periods)."""
 import json, os
+import pandas as pd
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 PATH = os.environ.get("REPORT_CONFIG", os.path.join(_HERE, "..", "config", "report_config.json"))
@@ -23,6 +24,7 @@ FILE_TAG = f"{FIRST}-{LAST}{YEAR}" if N > 1 else f"{FIRST}{YEAR}"               
 TOTAL_LABEL = f"{PERIOD} total"
 LEAD_FILE_PATTERN = CFG["lead_file_pattern"]
 LEAD_FILES = CFG.get("lead_files", {})                       # optional explicit file name per month key (e.g. LeadData1.csv)
+ALL_SOURCES = "*" in CFG.get("lead_sources", ["Facebook"])      # "*" = count every lead in the lead data, whatever its Lead Source
 LEAD_SOURCES = CFG.get("lead_sources", ["Facebook"])         # CRM Lead Source values that count as Meta-ad leads
 QUAL = CFG["qualified_statuses"]
 MEET = CFG["meeting_statuses"]
@@ -59,3 +61,8 @@ def partial_short():
 def last_two_note():
     """'Change Sep → Oct is NOT like-for-like (October is partial)' (or '')."""
     return f"Change {MONTHS[-2]} → {MONTHS[-1]} is NOT like-for-like ({MNAME[PARTIAL]} is partial)" if PARTIAL and N > 1 else ""
+
+
+def src_mask(series):
+    """True for leads whose Lead Source counts (all of them when config lead_sources contains "*")."""
+    return pd.Series(True, index=series.index) if ALL_SOURCES else series.isin(LEAD_SOURCES)

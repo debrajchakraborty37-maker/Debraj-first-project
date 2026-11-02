@@ -58,3 +58,4 @@ Master Dashboard · All Reports (One Tab) [live mirror of Brand-Wise + Campaign-
 
 ### Config keys added for the 2026-11-01 rebuild (comparison_config.json)
 `lead_files` (explicit lead file per month key, else `lead_file_pattern`), `lead_sources` (CRM Lead Source values counted as Meta-ad leads; default ["Facebook"] so the 7 brand reports are unchanged), `fw_lead_file`, `period_note` (cut-off sentence shown on the report). Month `partial` flag is optional (no flag = complete month, label has no suffix).
+`lead_sources: ["*"]` = count every lead whatever its Lead Source (helper `report_config.src_mask`); comparison report only. Source split columns: WhatsApp, Website, Facebook (incl. Daewoo CRM), Other.
