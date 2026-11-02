@@ -59,6 +59,9 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - **User:** "Include those leads in CPL also." Reverses the 2026-10-31 cost-basis rule. Config `outside_in_cpl: true` (builder + verifier honour it; false restores the old rule). Lead counts now = every lead in LeadData1/2 (10 brands, minus FW-campaign leads) and FWLeads.
 - Effect: Natuf Sep CPL ₹1,475 → ₹207 (8,010 leads; 6,884 sit on in-house campaigns whose spend is NOT in the Meta files, so CPL is understated), Oct ₹712 → ₹447; FW Sep ₹123 → ₹120; Carlton Sep ₹1,579 → ₹1,478; Adhira & Appa Sep ₹220 → ₹213. Quality Lead % for Natuf falls (225 / 8,010 in Sep) for the same reason. The orange columns still list these leads and the notes warn about the understatement.
 
+## 2026-11-02 — Two sub-agents created
+- **User:** asked for 2 sub-agents; chose Builder + Checker, names left to Brio. → **Kai** builds (`.claude/agents/kai.md`), **Vera** checks (`.claude/agents/vera.md`, read-only so the check stays independent). Brio stays the main agent and delegates to them.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.
