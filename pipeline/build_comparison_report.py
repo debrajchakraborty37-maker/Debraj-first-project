@@ -611,7 +611,7 @@ def build_dashboard(ws, wd, disp, brands):
     for ci in range(2, 14): ws.cell(vr, ci).fill = fill(GREY)
     notes = [
         "• Cost Per Lead (CPL) = Meta spend ÷ CRM leads that came from Meta ads (" + LEAD_SRC_TXT + "). Quality Lead = lead that reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Quality Lead % = Quality Leads ÷ CRM leads. Cost Per Quality Lead (CPQL) = Meta spend ÷ Quality Leads.",
-        "• " + CUTOFF + " Both months are therefore comparable like for like, except for FW (campaign stopped) and Daewoo (October to 30 Oct).",
+        "• " + CUTOFF + " Both months are therefore comparable like for like, except for FW (campaign stopped 27 Oct).",
         "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ ALL leads in the FW lead file, including bulk Excel uploads (these carry no ad spend, so FW's CPL looks much lower than ad-only CPL).",
         "• Leads on campaigns whose spend is NOT in the supplied Meta files are left out of CPL, Quality % and CPQL so cost and leads match (" + OUTSIDE_TXT + "). They are listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads (no campaign name, ad set not mappable — common for WhatsApp leads) stay in.",
         *(["• " + nometa_text() + " has leads but no Meta spend in the supplied files, so its cost figures show a dash; its Quality Lead % is real."] if NOMETA else []),
@@ -641,7 +641,7 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
     ws_log.append(["#", "Brand / area", "Check", "Result", "Detail"])
     items = []
     def add(area, check, res, detail): items.append((area, check, res, detail))
-    add("All", "Period & cut-offs", "INFO", CUTOFF + " All Meta exports run to 31 Oct; the lead files run to 31 Oct 23:59 (September file = all of September). FW leads end 27 Oct because the FW lead campaign was stopped (confirmed by the user); the Daewoo October report ends 30 Oct.")
+    add("All", "Period & cut-offs", "INFO", CUTOFF + " All Meta exports run to 31 Oct; the lead files run to 31 Oct 23:59 (September file = all of September). FW leads end 27 Oct because the FW lead campaign was stopped (confirmed by the user); Daewoo October is the Daewoo report for 1–31 Oct.")
     add("All", "Lead sources included", "INFO", "Every lead in the lead data is counted, whatever its Lead Source (Facebook, 'Whatsapp Cloud API', Website, Google Ads, Organic Dm, Manual, Excel uploads, ...), per the user's request. Most WhatsApp leads carry no campaign name, so they sit on the 'campaign not determinable' line (kept in cost). The Master Dashboard shows leads by source for every brand; the Comparison tab lists WhatsApp and Website leads per brand (green block, right).")
     add("All", "Quality Lead definition", "INFO", "Qualified, Follow-Up, Details Shared, Meeting Scheduled, Meeting Conducted (same as the 7 brand reports). Daewoo uses its own report flag.")
     add("All", "FW is a separate brand", "INFO", "FW-prefixed CRM brands / campaigns are excluded from every other brand and reported only under FW (FW_LeadData + Kustard–FW Meta).")
@@ -654,7 +654,7 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
         if b["name"] == "Daewoo":
             for m, rp in nt["reports"].items():
                 add("Daewoo", f"{m} report", "INFO", f"{rp['file']}: {rp['rows']:,} CRM rows, {rp['on_active']:,} on spend campaigns (used), {rp['unmapped']} unmapped; spend ₹{rp['spend']:,.2f}; qualified by report flag {rp['qual_flag']:,} (under the 7-brand status rule it would be {rp['qual_7rule']:,}).")
-            add("Daewoo", "Meta CSV vs report spend", "INFO", "The new Daewoo Meta export runs to 31 Oct (Sep ₹832,599 / Oct ₹1,415,611) but the Daewoo CRM leads supplied end 30 Oct, so the reports are used for BOTH spend and leads (same cut-off). The new LeadData files hold only part of Daewoo's leads (391 of the October report's 1,853 are found there), so they cannot replace the report. Send the Daewoo report / leads through 31 Oct to extend October.")
+            add("Daewoo", "Meta CSV vs report spend", "INFO", "The new Daewoo Meta export runs to 31 Oct (Sep ₹832,599 / Oct ₹1,415,611) and the Daewoo October report now also covers 1–31 Oct, so the reports are used for BOTH spend and leads. The LeadData files hold only part of Daewoo's leads, so the report (own CRM) is the lead count used.")
             continue
         extra = ""
         if b["name"] == "FW":

@@ -28,7 +28,7 @@
   "meta_leads_indicator": "actions:leadgen.other",
   "daewoo_reports": {
     "Sep": "Daewoo x ShootOrder - Campaign Performance Report - MTD 1-30Sep  FTD 30Sep2026.xlsx",
-    "Oct": "Daewoo x ShootOrder-Campaign Performance Report-MTD-1-30Oct-FTD-30-Oct2026.xlsx"
+    "Oct": "Daewoo x ShootOrder-Campaign Performance Report-MTD-1-31Oct-FTD-31-Oct2026.xlsx"
   },
   "fw_lead_file": "FWLeads.csv",
   "brands": {
@@ -160,5 +160,5 @@
   "lead_sources": [
     "*"
   ],
-  "period_note": "1 Sep – 31 Oct 2026 (both months complete). Exceptions: FW leads end 27 Oct (FW lead campaign stopped); Daewoo October is 1–30 Oct (Daewoo report)."
+  "period_note": "1 Sep – 31 Oct 2026 (both months complete). Exception: FW leads end 27 Oct (FW lead campaign stopped). Daewoo comes from its own CRM reports (Oct = 1–31 Oct)."
 }

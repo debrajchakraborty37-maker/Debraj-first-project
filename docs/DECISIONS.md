@@ -52,6 +52,9 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - Effect: for the 10 brands only ~180 extra leads (Google Ads 52, Organic Dm 38, Manual 1, small Excel) → CPL moves ≤ ₹3. **FW** counts 10,142 Sep / 1,263 Oct leads (was 1,074 / 947) → FW CPL Sep ₹123 (was ≈₹1,160; ~9.1k Excel uploads carry no ad spend), Oct ₹723. Disclosed on the report.
 - Comparison tab: source split Facebook / WhatsApp / Website / Other (cols AL–AO); dashboard charts E/F have 4 series. Verifier: 6,156 checks, 0 mismatches.
 
+## 2026-11-02 — Daewoo October now 1–31 Oct (1,950 leads)
+- **User:** Daewoo lead count is 1,950 → supplied `Daewoo x ShootOrder … MTD-1-31Oct-FTD-31-Oct2026.xlsx` (Data_CRM 1,950 rows, spend ₹1,415,611.46, qualified flag 466). Config `daewoo_reports.Oct` points to it; Daewoo Oct CPL ₹726, CPQL ₹3,038. Daewoo is no longer an exception to the 1–31 Oct period (only FW ends 27 Oct).
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.
