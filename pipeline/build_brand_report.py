@@ -100,10 +100,11 @@ def load_meta(meta_dir, prefix):
     ind = d["Result indicator"].fillna("")
     d["Meta Leads"] = d["Results"].where(ind == "actions:leadgen.other", 0).fillna(0)
     d["Results"] = d["Results"].fillna(0)
+    d["MLeadsAll"] = d["Results"].where(ind.str.startswith("actions:leadgen") | ind.str.contains("messaging_conversation_started") | ind.str.startswith("conversion_leads"), 0)   # every lead-type result; never landing-page views / link clicks
     g = d.groupby(["Month", "Campaign name"], as_index=False).agg(
         Delivery=("Campaign delivery", "last"), Spend=("Amount spent (INR)", "sum"), Impr=("Impressions", "sum"),
         Reach=("Reach", "sum"), LClicks=("Link clicks", "sum"), Clicks=("Clicks (all)", "sum"), LPV=("Landing page views", lambda s_: s_.sum(min_count=1)),
-        MLeads=("Meta Leads", "sum"), Results=("Results", "sum"), Rows=("Amount spent (INR)", "size"))
+        MLeads=("Meta Leads", "sum"), MLeadsAll=("MLeadsAll", "sum"), Results=("Results", "sum"), Rows=("Amount spent (INR)", "size"))
     if daily:  # unique reach is not additive across days
         g["Reach"] = None
     inds = sorted(set(ind) - {""})

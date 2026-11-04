@@ -62,6 +62,12 @@ Newest last. Each line: what the user said / chose → what we do → why.
 ## 2026-11-02 — Two sub-agents created
 - **User:** asked for 2 sub-agents; chose Builder + Checker, names left to Brio. → **Kai** builds (`.claude/agents/kai.md`), **Vera** checks (`.claude/agents/vera.md`, read-only so the check stays independent). Brio stays the main agent and delegates to them.
 
+## 2026-11-04 — CPL now = Meta spend ÷ Meta Results (not CRM leads)
+- **User:** "When you calculate the CPL, take the lead count from the Meta (Results), not from the CRM lead data." Meta lead count = "each & every lead except landing page view". **Quality Leads, Quality Lead % and CPQL stay on CRM leads** (user choice). Supersedes the earlier spend ÷ CRM-leads CPL in the Brand Comparison (the 7 brand reports are unchanged).
+- **Definition of Meta Leads** (per brand/month, from the Meta campaign exports; Daewoo from its report's Data_Campaigns): sum of `Results` where Result indicator = `actions:leadgen*` (form leads), `…messaging_conversation_started…` (WhatsApp conversations) or `conversion_leads*`. Excluded: `omni_landing_page_view` (as asked) and `link_click` (Adhira & Appa has 117,794 / 76,843 link-click results — these are traffic clicks, not leads; including them would give CPL < ₹1). Flagged to the user.
+- Where: Comparison cols AP–AQ, Data_Meta col F, Pivot_Data col H, Master Pivot measure "Meta Leads" (7 measures/month now), CPL pivot calculated field = Spend / Meta Leads. Verifier recomputes it independently (7,240 checks, 0 mismatches).
+- Effect: CPL Sep→Oct — Adhira & Appa 231→276, Acer 62→67, Natuf 940→392, Carlton 1,213→546, FW 657→752, Daewoo 738→718; portfolio 343→394. The CRM-lead artifacts (FW Excel uploads, Natuf outside-export leads) no longer distort CPL.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

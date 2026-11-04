@@ -68,7 +68,7 @@ def attribute(crm, mcamps, idev):
 
 
 def meta_rows(g, brand):
-    return [(r["Month"], r["Campaign name"], r["Delivery"] if isinstance(r["Delivery"], str) else "", float(r["Spend"])) for _, r in g.iterrows()]
+    return [(r["Month"], r["Campaign name"], r["Delivery"] if isinstance(r["Delivery"], str) else "", float(r["Spend"]), float(r["MLeadsAll"])) for _, r in g.iterrows()]
 
 
 def reconcile_levels(meta_dir, prefix, g):
@@ -123,7 +123,9 @@ def daewoo_brand(name, spec, dirs):
         id_c = next((c for c in cols if c and ("record id" in str(c).lower() or "social lead id" in str(c).lower())), cols[0])
         date_c = next(c for c in cols if c and ("created time" in str(c).lower() or "lead date" in str(c).lower()))
         act = dc[dc["Amount spent (INR)"] > 0]
-        for _, r in dc.iterrows(): mrows.append((m, r["Campaign name"], r["Campaign delivery"] or "", float(r["Amount spent (INR)"])))
+        ind_ = dc["Result indicator"].fillna("").astype(str)
+        dc["_ml"] = pd.to_numeric(dc["Results"], errors="coerce").fillna(0).where(ind_.str.startswith("actions:leadgen") | ind_.str.contains("messaging_conversation_started") | ind_.str.startswith("conversion_leads"), 0)
+        for _, r in dc.iterrows(): mrows.append((m, r["Campaign name"], r["Campaign delivery"] or "", float(r["Amount spent (INR)"]), float(r["_ml"])))
         sel = crm[crm[camp_c].isin(set(act["Campaign name"]))]
         notes["reports"][m] = dict(file=os.path.basename(path), rows=len(crm), on_active=len(sel), unmapped=int(crm[camp_c].isna().sum()), spend=float(dc["Amount spent (INR)"].sum()),
                                    qual_flag=int(pd.to_numeric(sel[qual_c], errors="coerce").fillna(0).sum()),
@@ -176,7 +178,7 @@ def build_lines(brands):
     """Pivot lines: one per (brand, campaign) with any spend or lead; unattributed 'not determinable' lines go last (shared-item order)."""
     real, last = [], []
     for b in brands:
-        mt = pd.DataFrame(b["meta"], columns=["m", "camp", "deliv", "spend"]) if b["meta"] else pd.DataFrame(columns=["m", "camp", "deliv", "spend"])
+        mt = pd.DataFrame(b["meta"], columns=["m", "camp", "deliv", "spend", "ml"]) if b["meta"] else pd.DataFrame(columns=["m", "camp", "deliv", "spend", "ml"])
         spend = mt.groupby("camp")["spend"].sum() if len(mt) else pd.Series(dtype=float)
         ld = b["leads"]
         cnt = ld.groupby("line").size() if len(ld) else pd.Series(dtype=int)
@@ -222,9 +224,9 @@ def write_workbook(brands, lines, dirs, out_path):
     disp = [b["display"] for b in brands]
 
     # ---- Data_Meta
-    ws_dm.append(["Month", "Brand", "Campaign", "Delivery", "Amount Spent (INR)"])
+    ws_dm.append(["Month", "Brand", "Campaign", "Delivery", "Amount Spent (INR)", "Meta Leads (Results, excl. landing page views)"])
     for b in brands:
-        for m, camp, deliv, sp in b["meta"]: ws_dm.append([MLAB[m], b["display"], camp, deliv, sp])
+        for m, camp, deliv, sp, ml in b["meta"]: ws_dm.append([MLAB[m], b["display"], camp, deliv, sp, ml])
     nm = ws_dm.max_row
     # ---- Data_Leads
     ws_dl.append(["Month", "Brand", "Lead ref", "Lead Source", "Status", "Campaign line", "Lead attribution", "Quality Lead (1/0)"])
@@ -238,17 +240,18 @@ def write_workbook(brands, lines, dirs, out_path):
     for ws_ in (ws_dm, ws_dl):
         for c in ws_[1]: c.font = fnt(True, "FFFFFF"); c.fill = fill(NAVY)
         ws_.freeze_panes = "A2"
-    for i, w in enumerate([18, 22, 62, 14, 18], 1): ws_dm.column_dimensions[L(i)].width = w
+    for i, w in enumerate([18, 22, 62, 14, 18, 22], 1): ws_dm.column_dimensions[L(i)].width = w
     for i, w in enumerate([18, 22, 26, 22, 22, 62, 28, 12], 1): ws_dl.column_dimensions[L(i)].width = w
 
     # ---- Pivot_Data (formulas on Data_Meta / Data_Leads) + python mirror for the static pivot body
-    ws_pd.append(["Month", "Brand", "Campaign", "Lead attribution", "Amount Spent (INR)", "CRM Leads Count", "Quality Leads Count"])
+    ws_pd.append(["Month", "Brand", "Campaign", "Lead attribution", "Amount Spent (INR)", "CRM Leads Count", "Quality Leads Count", "Meta Leads Count"])
     mrange = lambda c: f"Data_Meta!${c}$2:${c}${nm}"
     lrange = lambda c: f"Data_Leads!${c}$2:${c}${nl}"
     vals = {}
-    meta_idx = {}
+    meta_idx = {}; mlead_idx = {}
     for b in brands:
-        for m, camp, deliv, sp in b["meta"]: meta_idx[(b["display"], m, camp)] = meta_idx.get((b["display"], m, camp), 0) + sp
+        for m, camp, deliv, sp, ml in b["meta"]:
+            meta_idx[(b["display"], m, camp)] = meta_idx.get((b["display"], m, camp), 0) + sp; mlead_idx[(b["display"], m, camp)] = mlead_idx.get((b["display"], m, camp), 0) + ml
     lead_idx = {}
     for b in brands:
         ld = b["leads"]
@@ -258,20 +261,22 @@ def write_workbook(brands, lines, dirs, out_path):
         for m in MONTHS:
             sp = meta_idx.get((ln["brand"], m, ln["camp"]), 0.0) if ln["attr"] == ATTR_OK else 0.0
             n_, q_ = lead_idx.get((ln["brand"], m, ln["camp"]), (0, 0))
-            vals[(ln["brand"], ln["camp"], m)] = (sp, n_, q_)
+            ml_ = mlead_idx.get((ln["brand"], m, ln["camp"]), 0.0) if ln["attr"] == ATTR_OK else 0.0
+            vals[(ln["brand"], ln["camp"], m)] = (sp, n_, q_, ml_)
             ws_pd.append([MLAB[m], ln["brand"], ln["camp"], ln["attr"],
                           f'=SUMIFS({mrange("E")},{mrange("A")},A{r},{mrange("B")},B{r},{mrange("C")},C{r})',
                           f'=COUNTIFS({lrange("A")},A{r},{lrange("B")},B{r},{lrange("F")},C{r})',
-                          f'=SUMIFS({lrange("H")},{lrange("A")},A{r},{lrange("B")},B{r},{lrange("F")},C{r})'])
+                          f'=SUMIFS({lrange("H")},{lrange("A")},A{r},{lrange("B")},B{r},{lrange("F")},C{r})',
+                          f'=SUMIFS({mrange("F")},{mrange("A")},A{r},{mrange("B")},B{r},{mrange("C")},C{r})'])
             r += 1
     npd = ws_pd.max_row
     for c in ws_pd[1]: c.font = fnt(True, "FFFFFF"); c.fill = fill(NAVY)
     ws_pd.freeze_panes = "A2"
-    for i, w in enumerate([18, 22, 66, 28, 18, 16, 18], 1): ws_pd.column_dimensions[L(i)].width = w
+    for i, w in enumerate([18, 22, 66, 28, 18, 16, 18, 16], 1): ws_pd.column_dimensions[L(i)].width = w
     prng = lambda c: f"Pivot_Data!${c}$2:${c}${npd}"
 
     # ---- Comparison
-    build_comparison(ws_cmp, disp, prng, nl)
+    build_comparison(ws_cmp, disp, prng, nl, nm)
     # ---- Master Pivot (static body; real PivotTable injected after recalculation)
     pivot_rows = build_master_pivot(ws_piv, brands, lines, vals)
     # ---- Dashboard
@@ -287,11 +292,11 @@ def write_workbook(brands, lines, dirs, out_path):
 CMP_FIRST = 6   # first brand row on Comparison
 
 
-def build_comparison(ws, disp, prng, nl):
+def build_comparison(ws, disp, prng, nl, nm):
     n = len(disp); last = CMP_FIRST + n - 1; port = last + 1
     ws.sheet_view.showGridLines = False; ws.sheet_properties.tabColor = BLUE
     ws["A1"] = f"BRAND COMPARISON — {MLAB[M1].upper()} vs {MLAB[M2].upper()}"; ws["A2"] = ("CPL · Quality Leads · Quality Lead % · CPQL for every brand. CRM leads (cost basis) = Meta-ad leads (" + LEAD_SRC_TXT + ") created in the month, " + ("INCLUDING leads on campaigns whose spend is not in the supplied Meta files (shown separately in the orange columns at the right);" if INCL_OUT else "EXCLUDING leads on campaigns whose spend is not in the supplied Meta files (shown in the orange columns at the right) so cost and leads match;") + " Quality Lead = status in "
-        + ", ".join(QUAL) + ". Cost = Meta spend ÷ the count. A dash (–) = cannot be calculated or not supplied. " + CUTOFF)
+        + ", ".join(QUAL) + ". CPL = Meta spend ÷ Meta leads (Meta 'Results': form leads + WhatsApp conversations + conversion leads, landing-page views and link clicks excluded; shown in columns AP–AQ). CPQL = Meta spend ÷ Quality Leads; Quality Lead % = Quality Leads ÷ CRM leads. A dash (–) = cannot be calculated or not supplied. " + CUTOFF)
     for rr, (sz, b) in ((1, (16, True)), (2, (10, False))):
         for ci in range(1, 30): ws.cell(rr, ci).fill = fill(NAVY); ws.cell(rr, ci).font = fnt(b, "FFFFFF", sz)
     ws["A2"].alignment = Alignment(wrap_text=True, vertical="top"); ws.merge_cells("A2:X2"); ws.row_dimensions[2].height = 58
@@ -322,8 +327,11 @@ def build_comparison(ws, disp, prng, nl):
     for i, h in enumerate([f"Facebook leads {s1} (inside CPL basis)", f"Facebook leads {s2} (inside CPL basis)", f"Other sources {s1} (inside CPL basis)", f"Other sources {s2} (inside CPL basis)"], 38):
         c = ws.cell(5, i, h); c.font = fnt(True, "FFFFFF", 8); c.fill = fill("2E5090"); c.alignment = Alignment(wrap_text=True, vertical="center")
         ws.column_dimensions[L(i)].width = 16
-    ws.cell(4, 30, "Lead coverage (for transparency)"); ws.merge_cells(start_row=4, start_column=30, end_row=4, end_column=41)
-    for ci in range(30, 42): ws.cell(4, ci).fill = fill("B45F06" if ci < 34 else ("25A244" if ci < 38 else "2E5090")); ws.cell(4, ci).font = fnt(True, "FFFFFF", 10)
+    for i, h in enumerate([f"META LEADS (Results) {s1} — used for CPL", f"META LEADS (Results) {s2} — used for CPL"], 42):
+        c = ws.cell(5, i, h); c.font = fnt(True, "FFFFFF", 8); c.fill = fill("7030A0"); c.alignment = Alignment(wrap_text=True, vertical="center")
+        ws.column_dimensions[L(i)].width = 18
+    ws.cell(4, 30, "Lead coverage (for transparency)"); ws.merge_cells(start_row=4, start_column=30, end_row=4, end_column=43)
+    for ci in range(30, 44): ws.cell(4, ci).fill = fill("B45F06" if ci < 34 else ("25A244" if ci < 38 else ("2E5090" if ci < 42 else "7030A0"))); ws.cell(4, ci).font = fnt(True, "FFFFFF", 10)
     q = lambda a, mi, ex=False: f'SUMIFS({prng(a)},{prng("A")},"{MLAB[MONTHS[mi]]}",{prng("B")},$A{{r}}' + (f',{prng("D")},"<>{ATTR_NOTIN}"' if (ex and not INCL_OUT) else "") + ")"
     qa = lambda a, mi, attr: f'SUMIFS({prng(a)},{prng("A")},"{MLAB[MONTHS[mi]]}",{prng("B")},$A{{r}},{prng("D")},"{attr}")'
     for k, name in enumerate(disp + ["All brands with Meta spend"]):
@@ -336,6 +344,7 @@ def build_comparison(ws, disp, prng, nl):
                 ws.cell(r, 30 + mi, "=" + qa("F", mi, ATTR_NOTIN).format(r=r)); ws.cell(r, 32 + mi, "=" + qa("F", mi, ATTR_NOCAP).format(r=r))
                 ws.cell(r, 38 + mi, f'=COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"Facebook",Data_Leads!$G$2:$G${nl},"{'<>' + ATTR_NOTIN if not INCL_OUT else '*'}")+COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"Daewoo CRM (report)",Data_Leads!$G$2:$G${nl},"{'<>' + ATTR_NOTIN if not INCL_OUT else '*'}")')
                 ws.cell(r, 40 + mi, f"={L(4 + mi)}{r}-{L(34 + mi)}{r}-{L(36 + mi)}{r}-{L(38 + mi)}{r}")
+                ws.cell(r, 42 + mi, f'=SUMIFS(Data_Meta!$F$2:$F${nm},Data_Meta!$A$2:$A${nm},"{MLAB[MONTHS[mi]]}",Data_Meta!$B$2:$B${nm},$A{r})')
                 for off, srcname in ((34, "Whatsapp Cloud API"), (36, "Website")):
                     ws.cell(r, off + mi, f'=COUNTIFS(Data_Leads!$A$2:$A${nl},"{MLAB[MONTHS[mi]]}",Data_Leads!$B$2:$B${nl},$A{r},Data_Leads!$D$2:$D${nl},"{srcname}",Data_Leads!$G$2:$G${nl},"{'<>' + ATTR_NOTIN if not INCL_OUT else '*'}")')
             for mi in (0, 1):
@@ -345,10 +354,10 @@ def build_comparison(ws, disp, prng, nl):
                 ws.cell(r, 2 + mi, f"=SUM({L(2 + mi)}{CMP_FIRST}:{L(2 + mi)}{last})")
                 ws.cell(r, 4 + mi, f"=SUM({L(26 + mi)}{CMP_FIRST}:{L(26 + mi)}{last})")
                 ws.cell(r, 11 + mi, f"=SUM({L(28 + mi)}{CMP_FIRST}:{L(28 + mi)}{last})")
-                ws.cell(r, 30 + mi, f"=SUM({L(30 + mi)}{CMP_FIRST}:{L(30 + mi)}{last})"); ws.cell(r, 32 + mi, f"=SUM({L(32 + mi)}{CMP_FIRST}:{L(32 + mi)}{last})"); ws.cell(r, 34 + mi, f"=SUM({L(34 + mi)}{CMP_FIRST}:{L(34 + mi)}{last})"); ws.cell(r, 36 + mi, f"=SUM({L(36 + mi)}{CMP_FIRST}:{L(36 + mi)}{last})"); ws.cell(r, 38 + mi, f"=SUM({L(38 + mi)}{CMP_FIRST}:{L(38 + mi)}{last})"); ws.cell(r, 40 + mi, f"=SUM({L(40 + mi)}{CMP_FIRST}:{L(40 + mi)}{last})")
+                ws.cell(r, 30 + mi, f"=SUM({L(30 + mi)}{CMP_FIRST}:{L(30 + mi)}{last})"); ws.cell(r, 32 + mi, f"=SUM({L(32 + mi)}{CMP_FIRST}:{L(32 + mi)}{last})"); ws.cell(r, 34 + mi, f"=SUM({L(34 + mi)}{CMP_FIRST}:{L(34 + mi)}{last})"); ws.cell(r, 36 + mi, f"=SUM({L(36 + mi)}{CMP_FIRST}:{L(36 + mi)}{last})"); ws.cell(r, 38 + mi, f"=SUM({L(38 + mi)}{CMP_FIRST}:{L(38 + mi)}{last})"); ws.cell(r, 40 + mi, f"=SUM({L(40 + mi)}{CMP_FIRST}:{L(40 + mi)}{last})"); ws.cell(r, 42 + mi, f"=SUM({L(42 + mi)}{CMP_FIRST}:{L(42 + mi)}{last})")
         for mi in (0, 1):
-            sp, ld, ql = f"{L(2 + mi)}{r}", f"{L(4 + mi)}{r}", f"{L(11 + mi)}{r}"
-            ws.cell(r, 6 + mi, f'=IFERROR(IF(AND({ld}>0,{sp}>0),{sp}/{ld},"{DASH}"),"{DASH}")')
+            sp, ld, ql, ml = f"{L(2 + mi)}{r}", f"{L(4 + mi)}{r}", f"{L(11 + mi)}{r}", f"{L(42 + mi)}{r}"
+            ws.cell(r, 6 + mi, f'=IFERROR(IF(AND({ml}>0,{sp}>0),{sp}/{ml},"{DASH}"),"{DASH}")')
             ws.cell(r, 16 + mi, f'=IFERROR(IF({ld}>0,{ql}/{ld},"{DASH}"),"{DASH}")')
             ws.cell(r, 20 + mi, f'=IFERROR(IF(AND({ql}>0,{sp}>0),{sp}/{ql},"{DASH}"),"{DASH}")')
         def change(a, b, out_abs, out_pct=None, thr=0.01, lower_better=True, verdict=None, pp=False):
@@ -363,8 +372,8 @@ def build_comparison(ws, disp, prng, nl):
         change("P", "Q", 18, None, 0.005, False, 19)
         change("T", "U", 22, 23, 0.01, True, 24)
         fmts = {2: '₹#,##0', 3: '₹#,##0', 4: '#,##0', 5: '#,##0', 6: '₹#,##0', 7: '₹#,##0', 8: '₹#,##0;-₹#,##0', 9: '0.0%;-0.0%', 11: '#,##0', 12: '#,##0', 13: '#,##0;-#,##0',
-                14: '0.0%;-0.0%', 16: '0.0%', 17: '0.0%', 30: '#,##0', 31: '#,##0', 32: '#,##0', 33: '#,##0', 34: '#,##0', 35: '#,##0', 36: '#,##0', 37: '#,##0', 18: '0.0" pp";-0.0" pp"', 20: '₹#,##0', 21: '₹#,##0', 22: '₹#,##0;-₹#,##0', 23: '0.0%;-0.0%'}
-        for ci in range(2, 38):
+                14: '0.0%;-0.0%', 16: '0.0%', 17: '0.0%', 30: '#,##0', 31: '#,##0', 32: '#,##0', 33: '#,##0', 34: '#,##0', 35: '#,##0', 36: '#,##0', 37: '#,##0', 38: '#,##0', 39: '#,##0', 40: '#,##0', 41: '#,##0', 42: '#,##0', 43: '#,##0', 18: '0.0" pp";-0.0" pp"', 20: '₹#,##0', 21: '₹#,##0', 22: '₹#,##0;-₹#,##0', 23: '0.0%;-0.0%'}
+        for ci in range(2, 44):
             c = ws.cell(r, ci); c.alignment = Alignment(horizontal="center" if ci in (10, 15, 19, 24) else "right")
             if ci in fmts: c.number_format = fmts[ci]
             c.font = fnt(isp, "FFFFFF" if isp else "000000", 10)
@@ -385,14 +394,15 @@ def build_comparison(ws, disp, prng, nl):
 
 
 MP_FIRST = 17
+NMEAS = 7   # measures per month in the Master Pivot
 
 
 def build_master_pivot(ws, brands, lines, vals):
     ws.sheet_properties.tabColor = TEAL; ws.sheet_view.showGridLines = False; ws.sheet_view.zoomScale = 85; ws.sheet_view.zoomScaleNormal = 85
-    ncol = 1 + 6 * len(MONTHS)
+    ncol = 1 + NMEAS * len(MONTHS)
     ws["A1"] = "MASTER PIVOT  —  BRAND COMPARISON  ·  " + f"{MLAB[M1]} vs {MLAB[M2]}"
     ws["A2"] = ("Interactive PivotTable · click the slicers (Brand, Month, Lead attribution, Campaign) to filter — Ctrl+click for several, ✕ to clear; drag fields in the PivotTable Field List to re-cut. "
-                "Spend is Meta spend; leads are " + LEAD_SRC_TXT + " CRM leads. A dash (–) means spend or leads are zero (never a fake 0). " + CUTOFF)
+                "Spend is Meta spend; CPL = spend ÷ Meta Leads (Meta Results, excl. landing-page views); Quality Leads / CPQL come from CRM leads (" + LEAD_SRC_TXT + "). A dash (–) means spend or leads are zero (never a fake 0). " + CUTOFF)
     for rr, (sz, b) in ((1, (16, True)), (2, (10, False))):
         for ci in range(1, ncol + 1): ws.cell(rr, ci).fill = fill(NAVY); ws.cell(rr, ci).font = fnt(b, "FFFFFF", sz)
     ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=13); ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=13)
@@ -403,13 +413,13 @@ def build_master_pivot(ws, brands, lines, vals):
     ws.column_dimensions["A"].width = 62
     for ci in range(2, ncol + 1): ws.column_dimensions[L(ci)].width = 14
     for r_ in range(4, 12): ws.row_dimensions[r_].height = 20
-    meas = [("Spend (₹)", "₹#,##0"), ("CRM Leads", "#,##0"), ("CPL (₹)", "₹#,##0"), ("Quality Leads", "#,##0"), ("Quality Lead %", "0.0%"), ("CPQL (₹)", "₹#,##0")]
+    meas = [("Spend (₹)", "₹#,##0"), ("CRM Leads", "#,##0"), ("Meta Leads", "#,##0"), ("CPL (₹)", "₹#,##0"), ("Quality Leads", "#,##0"), ("Quality Lead %", "0.0%"), ("CPQL (₹)", "₹#,##0")]
     ws["B14"] = "Month"
     for ci in range(1, ncol + 1):
         for rr in (14, 15, 16): ws.cell(rr, ci).fill = fill(NAVY if rr < 16 else BLUE); ws.cell(rr, ci).font = fnt(True, "FFFFFF", 9)
     ws["A16"] = "Brand  ›  Campaign"
     for mi, m in enumerate(MONTHS):
-        c0 = 2 + mi * 6
+        c0 = 2 + mi * NMEAS
         ws.cell(15, c0, MLAB[m]).alignment = Alignment(horizontal="left")
         for k, (cap, fm) in enumerate(meas): ws.cell(16, c0 + k, cap).alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
     ws.row_dimensions[16].height = 30
@@ -417,10 +427,10 @@ def build_master_pivot(ws, brands, lines, vals):
     def write(r, label, key_rows, bold=False, fillc=None, fc="000000"):
         ws.cell(r, 1, label)
         for mi, m in enumerate(MONTHS):
-            sp = sum(vals[(b, c, m)][0] for b, c in key_rows); ld = sum(vals[(b, c, m)][1] for b, c in key_rows); ql = sum(vals[(b, c, m)][2] for b, c in key_rows)
-            row = [sp, ld, (sp / ld if ld > 0 and sp > 0 else DASH), ql, (ql / ld if ld > 0 else DASH), (sp / ql if ql > 0 and sp > 0 else DASH)]
+            sp = sum(vals[(b, c, m)][0] for b, c in key_rows); ld = sum(vals[(b, c, m)][1] for b, c in key_rows); ql = sum(vals[(b, c, m)][2] for b, c in key_rows); ml = sum(vals[(b, c, m)][3] for b, c in key_rows)
+            row = [sp, ld, ml, (sp / ml if ml > 0 and sp > 0 else DASH), ql, (ql / ld if ld > 0 else DASH), (sp / ql if ql > 0 and sp > 0 else DASH)]
             for k, v in enumerate(row):
-                c = ws.cell(r, 2 + mi * 6 + k, v); c.number_format = meas[k][1]; c.alignment = Alignment(horizontal="right")
+                c = ws.cell(r, 2 + mi * NMEAS + k, v); c.number_format = meas[k][1]; c.alignment = Alignment(horizontal="right")
         for ci in range(1, ncol + 1):
             ws.cell(r, ci).font = fnt(bold, fc, 9)
             if fillc: ws.cell(r, ci).fill = fill(fillc)
@@ -454,7 +464,7 @@ def build_dashboard(ws, wd, disp, brands):
         for rr in (1, 2, 3): ws.cell(rr, ci).fill = fill(NAVY)
     ws["B1"] = "MASTER DASHBOARD — BRAND COMPARISON"; ws["B1"].font = fnt(True, "FFFFFF", 20)
     ws["B2"] = f"{MLAB[M1]}  vs  {MLAB[M2]}   ·   {n} brands   ·   Cost per Lead · Quality Leads · Quality Lead % · Cost per Quality Lead"; ws["B2"].font = fnt(False, "FFFFFF", 11)
-    ws["B3"] = CUTOFF + " Spend is Meta spend; leads are " + LEAD_SRC_TXT + " CRM leads on campaigns whose spend is in the Meta files. FW and Adhira & Appa Toys are separate brands."; ws["B3"].font = fnt(False, "DDE6F5", 9)
+    ws["B3"] = CUTOFF + " CPL = Meta spend ÷ Meta Leads (Meta 'Results', landing-page views excluded); Quality Leads, Quality Lead % and CPQL use CRM leads (" + LEAD_SRC_TXT + "). FW and Adhira & Appa Toys are separate brands."; ws["B3"].font = fnt(False, "DDE6F5", 9)
     ws.merge_cells("B3:M3"); ws["B3"].alignment = Alignment(wrap_text=True, vertical="top"); ws.row_dimensions[3].height = 40
     ws.row_dimensions[1].height = 34
     # ---- helper (chart data with NA() gaps)
@@ -612,7 +622,7 @@ def build_dashboard(ws, wd, disp, brands):
     ws.cell(vr, 2, "HOW TO READ THIS PAGE · DATA NOTES").font = fnt(True, "FFFFFF", 11)
     for ci in range(2, 14): ws.cell(vr, ci).fill = fill(GREY)
     notes = [
-        "• Cost Per Lead (CPL) = Meta spend ÷ CRM leads that came from Meta ads (" + LEAD_SRC_TXT + "). Quality Lead = lead that reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Quality Lead % = Quality Leads ÷ CRM leads. Cost Per Quality Lead (CPQL) = Meta spend ÷ Quality Leads.",
+        "• Cost Per Lead (CPL) = Meta spend ÷ Meta leads (the 'Results' in the Meta exports: form leads + WhatsApp conversations started + conversion leads; landing-page views and link clicks are NOT leads and are excluded). CRM leads (" + LEAD_SRC_TXT + ") are used for Quality Lead, Quality Lead % and CPQL. Quality Lead = lead that reached Qualified, Follow-Up, Details Shared, Meeting Scheduled or Meeting Conducted. Quality Lead % = Quality Leads ÷ CRM leads. Cost Per Quality Lead (CPQL) = Meta spend ÷ Quality Leads.",
         "• " + CUTOFF + " Both months are therefore comparable like for like, except for FW (campaign stopped 27 Oct).",
         "• Daewoo comes from your two Daewoo reports (its own CRM; its 'qualified' also counts Interested, Negotiation, Token Received, Won). FW = Kustard-FW Meta spend ÷ ALL leads in the FW lead file, including bulk Excel uploads (these carry no ad spend, so FW's CPL looks much lower than ad-only CPL).",
         ("• Leads on campaigns whose spend is NOT in the supplied Meta files ARE counted in CPL, Quality % and CPQL, as requested (" + OUTSIDE_TXT + "). Their cost is missing from the Meta files, so for those brands CPL can look lower than the true cost per lead. They are also listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads stay in." if INCL_OUT else "• Leads on campaigns whose spend is NOT in the supplied Meta files are left out of CPL, Quality % and CPQL so cost and leads match (" + OUTSIDE_TXT + "). They are listed in the orange columns of the Comparison tab. 'Campaign not determinable' leads (no campaign name, ad set not mappable — common for WhatsApp leads) stay in."),
@@ -631,7 +641,8 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
           ("CRM Leads (cost basis)", "Meta-ad leads created in the month (Lead Source = " + LEAD_SRC_TXT + "; FW file: 'face book' / WhatsApp; Daewoo: leads on campaigns with spend in the Daewoo reports), " + ("INCLUDING leads on campaigns whose spend is not in the supplied Meta files (user's choice; their cost is not in the Meta files, so CPL for those brands is understated)." if INCL_OUT else "EXCLUDING leads on campaigns whose spend is not in the supplied Meta files (they would raise leads without raising cost).") + " Leads with no determinable campaign stay in.", "LeadDetails / FW_LeadData / Daewoo reports"),
           ("Quality Lead", "Status in {" + ", ".join(QUAL) + "}. Daewoo: the Daewoo report's own Qualified flag (also counts Interested, Negotiation, Token Received, Won).", "CRM"),
           ("Quality Lead %", "Quality Leads ÷ CRM Leads", ""),
-          ("CPL — Cost Per Lead", "Meta spend ÷ CRM Leads", "Meta campaign export (Daewoo: Daewoo report)"),
+          ("CPL — Cost Per Lead", "Meta spend ÷ Meta Leads. Meta Leads = sum of Meta 'Results' whose indicator is leadgen (form leads), messaging_conversation_started (WhatsApp) or conversion_leads; landing-page-view and link-click results are not leads and are excluded.", "Meta campaign export (Daewoo: Daewoo report)"),
+          ("Meta Leads", "Meta 'Results' lead-type count per brand and month (Comparison columns AP–AQ, Data_Meta column F, Master Pivot 'Meta Leads'). CRM Leads (all sources) are shown separately and drive Quality Lead %.", "Meta campaign export (Daewoo: Daewoo report)"),
           ("CPQL — Cost Per Quality Lead", "Meta spend ÷ Quality Leads", ""),
           ("Verdict", "CPL/CPQL lower = Improved; Quality Leads / Quality Lead % higher = Improved; ±1 % (±0.5 pp) = Flat", ""),
           ("Dash (–)", "Cannot be calculated or not supplied by the source (zero spend / zero leads / no Meta export). Never a fake zero.", ""),
@@ -688,13 +699,14 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
               ("Pivot_Data quality leads total vs Data_Leads quality flags", f"=SUM({P('G')})", f"=SUM(Data_Leads!$H$2:$H${nl})"),
               ("Comparison: total spend (all brands) vs Pivot_Data", f"=SUM(Comparison!B{CMP_FIRST}:C{CMP_FIRST + len(brands) - 1})", f"=SUM({P('E')})"),
               ("Comparison: cost-basis leads + leads outside the Meta export = all Pivot_Data leads", f"=SUM(Comparison!D{CMP_FIRST}:E{CMP_FIRST + len(brands) - 1})" + ("" if INCL_OUT else f"+SUM(Comparison!AD{CMP_FIRST}:AE{CMP_FIRST + len(brands) - 1})"), f"=SUM({P('F')})"),
-              ("Comparison: quality leads (cost basis) vs Pivot_Data excluding campaigns outside the Meta export", f"=SUM(Comparison!K{CMP_FIRST}:L{CMP_FIRST + len(brands) - 1})", (f'=SUM({P("G")})' if INCL_OUT else f'=SUMIFS({P("G")},{P("D")},"<>{ATTR_NOTIN}")'))]
+              ("Comparison: quality leads (cost basis) vs Pivot_Data excluding campaigns outside the Meta export", f"=SUM(Comparison!K{CMP_FIRST}:L{CMP_FIRST + len(brands) - 1})", (f'=SUM({P("G")})' if INCL_OUT else f'=SUMIFS({P("G")},{P("D")},"<>{ATTR_NOTIN}")')),
+              ("Comparison: Meta leads (CPL basis) = Data_Meta total", f"=SUM(Comparison!AP{CMP_FIRST}:AQ{CMP_FIRST + len(brands) - 1})", f"=SUM(Data_Meta!$F$2:$F${nm})")]
     g = pivot_rows["grand"]
     for mi in range(len(MONTHS)):
-        c0 = 2 + mi * 6
+        c0 = 2 + mi * NMEAS
         checks.append((f"Master Pivot grand total spend {MLAB[MONTHS[mi]]} vs Pivot_Data", f"='Master Pivot'!{L(c0)}{g}", f'=SUMIFS({P("E")},{P("A")},"{MLAB[MONTHS[mi]]}")'))
         checks.append((f"Master Pivot grand total CRM leads {MLAB[MONTHS[mi]]} vs Pivot_Data", f"='Master Pivot'!{L(c0 + 1)}{g}", f'=SUMIFS({P("F")},{P("A")},"{MLAB[MONTHS[mi]]}")'))
-        checks.append((f"Master Pivot grand total quality leads {MLAB[MONTHS[mi]]} vs Pivot_Data", f"='Master Pivot'!{L(c0 + 3)}{g}", f'=SUMIFS({P("G")},{P("A")},"{MLAB[MONTHS[mi]]}")'))
+        checks.append((f"Master Pivot grand total quality leads {MLAB[MONTHS[mi]]} vs Pivot_Data", f"='Master Pivot'!{L(c0 + 4)}{g}", f'=SUMIFS({P("G")},{P("A")},"{MLAB[MONTHS[mi]]}")'))
     rr = 4
     for name, a, b in checks:
         ws_val.cell(rr, 1, name); ws_val.cell(rr, 2, a)
@@ -722,9 +734,9 @@ def main(leads_dir, meta_experts_dir, comp_dir, out_dir):
     spec = dict(
         MONTHS=[MLAB[m] for m in MONTHS],
         STR_FIELDS=["Month", "Brand", "Campaign", "Lead attribution"],
-        NUM_FIELDS=["Amount Spent (INR)", "CRM Leads Count", "Quality Leads Count"],
-        CALC=[("CPL ratio", "'Amount Spent (INR)'/'CRM Leads Count'"), ("Quality pct ratio", "'Quality Leads Count'/'CRM Leads Count'"), ("CPQL ratio", "'Amount Spent (INR)'/'Quality Leads Count'")],
-        DATA_FIELDS=[("Spend (₹)", 4, "cost"), ("CRM Leads", 5, 3), ("CPL (₹)", 7, "cost"), ("Quality Leads", 6, 3), ("Quality Lead %", 8, "pct"), ("CPQL (₹)", 9, "cost")],
+        NUM_FIELDS=["Amount Spent (INR)", "CRM Leads Count", "Quality Leads Count", "Meta Leads Count"],
+        CALC=[("CPL ratio", "'Amount Spent (INR)'/'Meta Leads Count'"), ("Quality pct ratio", "'Quality Leads Count'/'CRM Leads Count'"), ("CPQL ratio", "'Amount Spent (INR)'/'Quality Leads Count'")],
+        DATA_FIELDS=[("Spend (₹)", 4, "cost"), ("CRM Leads", 5, 3), ("Meta Leads", 7, 3), ("CPL (₹)", 8, "cost"), ("Quality Leads", 6, 3), ("Quality Lead %", 9, "pct"), ("CPQL (₹)", 10, "cost")],
         SLICERS=[("Brand", 1, "Slicer_Brand"), ("Month", 0, "Slicer_Month"), ("Lead attribution", 3, "Slicer_Lead_attribution"), ("Campaign", 2, "Slicer_Campaign")],
         COL_FIELD=0, ROW_FIELDS=(1, 2), ROW_CAPTION="Brand  ›  Campaign", COL_CAPTION="Month",
         SLICER_LAYOUT=[(95250, 1800000), (2000000, 1300000), (3400000, 2500000), (6000000, 4300000)])

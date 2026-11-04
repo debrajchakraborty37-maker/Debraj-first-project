@@ -29,6 +29,8 @@ def cmp(tag, got, exp, tol=1e-9):
 
 
 div = lambda a, b: (a / b) if (b is not None and b > 0) else DASH
+# a Meta "Results" row counts as a lead when its indicator is a lead type (form lead / WhatsApp conversation / conversion lead); landing-page views and link clicks are not leads
+ISLEAD = lambda i: i.startswith("actions:leadgen") or "messaging_conversation_started" in i or i.startswith("conversion_leads")
 # ------------------------------------------------------------------ raw loading (independent of the build code)
 raw_leads = pd.concat([pd.read_csv(os.path.join(LEADS, rc.lead_file(m)), low_memory=False,
                                    usecols=["Lead id", "Status", "Lead Source", "Brand", "Created On", "Facebook Campaign Name", "Facebook Ad Set ID"]).assign(M=m) for m in MONTHS], ignore_index=True)
@@ -48,9 +50,9 @@ def meta_month(prefix, d):
 def expected_for(name, spec):
     """returns dict month -> dict(spend, basis_leads, quality, outside, nocap) and per-line dict (camp,month)->(spend, leads, quality, attr)"""
     src = spec["source"]; dirs = {"meta_experts": METAX, "comp": COMP}
-    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0, wa=0, web=0, fb=0, oth=0) for m in MONTHS}
-    def put(m, camp, attr, leads=0, q=0, spend=0.0):
-        k = (camp, m); a = lines.get(k, [0.0, 0, 0, attr]); a[0] += spend; a[1] += leads; a[2] += q; lines[k] = a
+    lines, tot = {}, {m: dict(spend=0.0, leads=0, quality=0, outside=0, nocap=0, wa=0, web=0, fb=0, oth=0, ml=0.0) for m in MONTHS}
+    def put(m, camp, attr, leads=0, q=0, spend=0.0, ml=0.0):
+        k = (camp, m); a = lines.get(k, [0.0, 0, 0, attr, 0.0]); a[0] += spend; a[1] += leads; a[2] += q; a[4] += ml; lines[k] = a
     if src == "daewoo_reports":
         for m in MONTHS:
             path = os.path.join(COMP, CFG["daewoo_reports"][m])
@@ -59,7 +61,9 @@ def expected_for(name, spec):
             crm_rows = list(wb["Data_CRM"].iter_rows(values_only=True)); crm = pd.DataFrame(crm_rows[1:], columns=crm_rows[0]).dropna(how="all"); wb.close()
             cols = list(crm.columns); camp_c = next(c for c in cols if c and "campaign" in str(c).lower()); qc = next(c for c in cols if c and str(c).lower().startswith("qualified"))
             act = set(dc[dc["Amount spent (INR)"] > 0]["Campaign name"])
-            for _, r in dc.iterrows(): put(m, r["Campaign name"], "Campaign in Meta export", spend=float(r["Amount spent (INR)"]))
+            ind = dc["Result indicator"].fillna("").astype(str); dml = pd.to_numeric(dc["Results"], errors="coerce").fillna(0).where(ind.map(ISLEAD), 0)
+            for (_, r), v in zip(dc.iterrows(), dml): put(m, r["Campaign name"], "Campaign in Meta export", spend=float(r["Amount spent (INR)"]), ml=float(v))
+            tot[m]["ml"] = float(dml.sum())
             sel = crm[crm[camp_c].isin(act)]
             for camp, g in sel.groupby(camp_c): put(m, camp, "Campaign in Meta export", len(g), int(pd.to_numeric(g[qc], errors="coerce").fillna(0).sum()))
             tot[m]["spend"] = float(dc["Amount spent (INR)"].sum()); tot[m]["leads"] = len(sel); tot[m]["quality"] = int(pd.to_numeric(sel[qc], errors="coerce").fillna(0).sum()); tot[m]["fb"] = len(sel)
@@ -67,8 +71,9 @@ def expected_for(name, spec):
     mc = set(); mt = None
     if spec["meta_file_prefix"]:
         mt = meta_month(spec["meta_file_prefix"], dirs[spec["meta_dir"]]); mc = set(mt["Campaign name"])
-        for (m, camp), g in mt.groupby(["m", "Campaign name"]): put(m, camp, "Campaign in Meta export", spend=float(g["Amount spent (INR)"].sum()))
-        for m in MONTHS: tot[m]["spend"] = float(mt[mt["m"] == m]["Amount spent (INR)"].sum())
+        mt["ml"] = pd.to_numeric(mt["Results"], errors="coerce").fillna(0).where(mt["Result indicator"].fillna("").astype(str).map(ISLEAD), 0)
+        for (m, camp), g in mt.groupby(["m", "Campaign name"]): put(m, camp, "Campaign in Meta export", spend=float(g["Amount spent (INR)"].sum()), ml=float(g["ml"].sum()))
+        for m in MONTHS: tot[m]["spend"] = float(mt[mt["m"] == m]["Amount spent (INR)"].sum()); tot[m]["ml"] = float(mt[mt["m"] == m]["ml"].sum())
     if src == "fw_leads":
         L = pd.read_csv(os.path.join(COMP, CFG["fw_lead_file"]), low_memory=False, usecols=["Status", "Lead Source", "Created On", "Facebook Campaign Name"])
         L["cr"] = pd.to_datetime(L["Created On"], format="%d/%m/%Y %H:%M:%S", errors="coerce"); L["m"] = L["cr"].dt.strftime("%b")
@@ -115,7 +120,7 @@ def verdict(change, thr, lower_better):
 
 def metrics(t):
     sp, ld, q = t["spend"], t["leads"], t["quality"]
-    return dict(cpl=div(sp, ld) if sp > 0 else DASH, qp=div(q, ld), cpql=div(sp, q) if sp > 0 else DASH)
+    return dict(cpl=div(sp, t["ml"]) if sp > 0 else DASH, qp=div(q, ld), cpql=div(sp, q) if sp > 0 else DASH)
 
 S = {}
 for b, tot in EXP.items():
@@ -126,7 +131,7 @@ for b, tot in EXP.items():
         cmp(f"{b}|{m}|CPL", cmpws.cell(r, 6 + mi).value, mm[mi]["cpl"]); cmp(f"{b}|{m}|Q%", cmpws.cell(r, 16 + mi).value, mm[mi]["qp"]); cmp(f"{b}|{m}|CPQL", cmpws.cell(r, 20 + mi).value, mm[mi]["cpql"])
         cmp(f"{b}|{m}|outside", cmpws.cell(r, 30 + mi).value, tot[m]["outside"]); cmp(f"{b}|{m}|nocap", cmpws.cell(r, 32 + mi).value, tot[m]["nocap"])
         cmp(f"{b}|{m}|whatsapp", cmpws.cell(r, 34 + mi).value, tot[m]["wa"]); cmp(f"{b}|{m}|website", cmpws.cell(r, 36 + mi).value, tot[m]["web"])
-        cmp(f"{b}|{m}|facebook", cmpws.cell(r, 38 + mi).value, tot[m]["fb"]); cmp(f"{b}|{m}|other", cmpws.cell(r, 40 + mi).value, tot[m]["oth"])
+        cmp(f"{b}|{m}|metaleads", cmpws.cell(r, 42 + mi).value, tot[m]["ml"]); cmp(f"{b}|{m}|facebook", cmpws.cell(r, 38 + mi).value, tot[m]["fb"]); cmp(f"{b}|{m}|other", cmpws.cell(r, 40 + mi).value, tot[m]["oth"])
     a, c_ = mm[0], mm[1]
     ch = lambda x, y: (y - x) if isinstance(x, (int, float)) and isinstance(y, (int, float)) else DASH
     pc = lambda x, y: (y / x - 1) if isinstance(x, (int, float)) and isinstance(y, (int, float)) and x != 0 else DASH
@@ -143,13 +148,15 @@ pr = disp_rows["All brands with Meta spend"]
 for mi, m in enumerate(MONTHS):
     sp = sum(S[b][0][m]["spend"] for b in S); ld = sum(S[b][0][m]["leads"] for b in S if S[b][0][m]["spend"] > 0); q = sum(S[b][0][m]["quality"] for b in S if S[b][0][m]["spend"] > 0)
     cmp(f"PORT|{m}|spend", cmpws.cell(pr, 2 + mi).value, sp, 1e-9); cmp(f"PORT|{m}|leads", cmpws.cell(pr, 4 + mi).value, ld); cmp(f"PORT|{m}|quality", cmpws.cell(pr, 11 + mi).value, q)
-    cmp(f"PORT|{m}|CPL", cmpws.cell(pr, 6 + mi).value, div(sp, ld) if sp > 0 else DASH); cmp(f"PORT|{m}|Q%", cmpws.cell(pr, 16 + mi).value, div(q, ld)); cmp(f"PORT|{m}|CPQL", cmpws.cell(pr, 20 + mi).value, div(sp, q) if sp > 0 else DASH)
+    mlp = sum(S[b][0][m]["ml"] for b in S if S[b][0][m]["spend"] > 0); cmp(f"PORT|{m}|metaleads", cmpws.cell(pr, 42 + mi).value, mlp)
+    cmp(f"PORT|{m}|CPL", cmpws.cell(pr, 6 + mi).value, div(sp, mlp) if sp > 0 else DASH); cmp(f"PORT|{m}|Q%", cmpws.cell(pr, 16 + mi).value, div(q, ld)); cmp(f"PORT|{m}|CPQL", cmpws.cell(pr, 20 + mi).value, div(sp, q) if sp > 0 else DASH)
 # ------------------------------------------------------------------ Pivot_Data (every line x month)
 pdrows = [r for r in wb["Pivot_Data"].iter_rows(min_row=2, values_only=True) if r[0] is not None]
 inv = {MLAB[m]: m for m in MONTHS}
 seen = set(); PD = {}
-for mlab, brand, camp, attr, sp, ld, q in pdrows:
-    m = inv[mlab]; k = (camp, m); e = ELINES[brand].get(k, [0.0, 0, 0, attr]); seen.add((brand, camp, m)); PD[(brand, camp, m)] = (sp, ld, q)
+for mlab, brand, camp, attr, sp, ld, q, mlv in pdrows:
+    m = inv[mlab]; k = (camp, m); e = ELINES[brand].get(k, [0.0, 0, 0, attr, 0.0]); seen.add((brand, camp, m)); PD[(brand, camp, m)] = (sp, ld, q, mlv)
+    cmp(f"PD|{brand}|{camp[:40]}|{m}|metaleads", mlv, e[4] if attr == "Campaign in Meta export" else 0.0)
     cmp(f"PD|{brand}|{camp[:40]}|{m}|spend", sp, e[0] if attr == "Campaign in Meta export" else 0.0, 1e-9); cmp(f"PD|{brand}|{camp[:40]}|{m}|leads", ld, e[1]); cmp(f"PD|{brand}|{camp[:40]}|{m}|q", q, e[2])
 # every expected line with activity must appear in Pivot_Data (active = spend>0 or leads>0 in any month)
 for b, lines in ELINES.items():
@@ -177,9 +184,9 @@ for r in range(17, mp.max_row + 1):
     elif lab == "Grand Total": sub = dict(PD)
     else: sub = {k: v for k, v in PD.items() if k[0] == brand and k[1] == lab}
     for mi, m in enumerate(MONTHS):
-        sp = sum(v[0] for k, v in sub.items() if k[2] == m); ld = sum(v[1] for k, v in sub.items() if k[2] == m); q = sum(v[2] for k, v in sub.items() if k[2] == m)
-        exp = [sp, ld, div(sp, ld) if sp > 0 else DASH, q, div(q, ld), div(sp, q) if sp > 0 else DASH]
-        for k, e in enumerate(exp): cmp(f"MP|{lab[:30]}|{m}|{k}", mp.cell(r, 2 + mi * 6 + k).value, e)
+        sp = sum(v[0] for k, v in sub.items() if k[2] == m); ld = sum(v[1] for k, v in sub.items() if k[2] == m); q = sum(v[2] for k, v in sub.items() if k[2] == m); mlv = sum(v[3] for k, v in sub.items() if k[2] == m)
+        exp = [sp, ld, mlv, div(sp, mlv) if sp > 0 else DASH, q, div(q, ld), div(sp, q) if sp > 0 else DASH]
+        for k, e in enumerate(exp): cmp(f"MP|{lab[:30]}|{m}|{k}", mp.cell(r, 2 + mi * 7 + k).value, e)
 # structure: no merges/formulas in pivot range, no panes; pivot parts present
 import zipfile
 z = zipfile.ZipFile(WB); wbx = z.read("xl/workbook.xml").decode()
