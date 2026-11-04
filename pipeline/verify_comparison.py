@@ -136,13 +136,10 @@ for b, tot in EXP.items():
     ch = lambda x, y: (y - x) if isinstance(x, (int, float)) and isinstance(y, (int, float)) else DASH
     pc = lambda x, y: (y / x - 1) if isinstance(x, (int, float)) and isinstance(y, (int, float)) and x != 0 else DASH
     cmp(f"{b}|dCPL", cmpws.cell(r, 8).value, ch(a["cpl"], c_["cpl"])); cmp(f"{b}|dCPL%", cmpws.cell(r, 9).value, pc(a["cpl"], c_["cpl"]))
-    cmp(f"{b}|vCPL", cmpws.cell(r, 10).value, verdict(pc(a["cpl"], c_["cpl"]), 0.01, True))
     q1, q2 = tot[MONTHS[0]]["quality"], tot[MONTHS[1]]["quality"]
     cmp(f"{b}|dQ", cmpws.cell(r, 13).value, q2 - q1); cmp(f"{b}|dQ%", cmpws.cell(r, 14).value, pc(q1, q2) if q1 != 0 else DASH)
-    cmp(f"{b}|vQ", cmpws.cell(r, 15).value, verdict(pc(q1, q2) if q1 != 0 else DASH, 0.01, False))
-    cmp(f"{b}|dQP", cmpws.cell(r, 18).value, ch(a["qp"], c_["qp"])); cmp(f"{b}|vQP", cmpws.cell(r, 19).value, verdict(ch(a["qp"], c_["qp"]), 0.005, False))
+    cmp(f"{b}|dQP", cmpws.cell(r, 18).value, ch(a["qp"], c_["qp"]))
     cmp(f"{b}|dCPQL", cmpws.cell(r, 22).value, ch(a["cpql"], c_["cpql"])); cmp(f"{b}|dCPQL%", cmpws.cell(r, 23).value, pc(a["cpql"], c_["cpql"]))
-    cmp(f"{b}|vCPQL", cmpws.cell(r, 24).value, verdict(pc(a["cpql"], c_["cpql"]), 0.01, True))
 # portfolio row (brands with Meta spend in both... = spend>0 per month)
 pr = disp_rows["All brands with Meta spend"]
 for mi, m in enumerate(MONTHS):
@@ -209,7 +206,7 @@ n = len(EXP)
 for k, b in enumerate(list(EXP)):
     r = 14 + k
     cmp(f"DASH score {b} name", d.cell(r, 2).value, b)
-    for col, src in zip((3, 4, 5, 6, 7, 8, 9, 10), ("G", "J", "L", "O", "Q", "S", "U", "X")): cmp(f"DASH score {b} c{col}", d.cell(r, col).value, cmpws[f"{src}{disp_rows[b]}"].value)
+    for col, src in zip((3, 4, 5, 6), ("G", "L", "Q", "U")): cmp(f"DASH score {b} c{col}", d.cell(r, col).value, cmpws[f"{src}{disp_rows[b]}"].value)
 # ------------------------------------------------------------------ chart helper (graphical interpretation) vs independent values
 dd = wb["Dashboard_Data"]
 NA_ = "#N/A"

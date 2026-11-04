@@ -68,6 +68,9 @@ Newest last. Each line: what the user said / chose → what we do → why.
 - Where: Comparison cols AP–AQ, Data_Meta col F, Pivot_Data col H, Master Pivot measure "Meta Leads" (7 measures/month now), CPL pivot calculated field = Spend / Meta Leads. Verifier recomputes it independently (7,240 checks, 0 mismatches).
 - Effect: CPL Sep→Oct — Adhira & Appa 231→276, Acer 62→67, Natuf 940→392, Carlton 1,213→546, FW 657→752, Daewoo 738→718; portfolio 343→394. The CRM-lead artifacts (FW Excel uploads, Natuf outside-export leads) no longer distort CPL.
 
+## 2026-11-04 — Verdict columns removed
+- **User:** "remove all the Verdict columns." → Comparison tab: the four Verdict columns (J, O, S, X) are emptied and hidden (kept as hidden spacers so column references stay stable); Master Dashboard scorecard now shows Brand · CPL · Quality Leads · Quality % · CPQL only; the verdict-count insight is replaced by a plain count of brands with lower CPL / lower CPQL / higher Quality Lead %; "Verdict" removed from KPI Definitions and the verdict colour rules. The green/red chart bars still show direction of change. Verifier: 7,144 checks, 0 mismatches.
+
 ## Open items / known data limits (as of 2026-10-30)
 - Reach: Adhira export daily; brand-level unique reach not in any file. Landing page views: missing for most brands.
 - 17–70 % of Facebook leads per brand cannot be tied to a campaign (blank name, ad set not uniquely mapped); some leads sit on campaigns outside the supplied Meta export (e.g. in-house campaigns from another ad account) — spend for those not available.

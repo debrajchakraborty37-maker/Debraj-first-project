@@ -306,8 +306,8 @@ def build_comparison(ws, disp, prng, nl, nm):
         ws.cell(4, c0, lab); ws.merge_cells(start_row=4, start_column=c0, end_row=4, end_column=c0 + w - 1)
         for ci in range(c0, c0 + w): ws.cell(4, ci).fill = fill(col); ws.cell(4, ci).font = fnt(True, "FFFFFF", 10)
     s1, s2 = MLAB[M1], MLAB[M2]
-    heads = ["Brand", s1, s2, s1, s2, s1, s2, "Change (₹)", "Change %", "Verdict", s1, s2, "Change", "Change %", "Verdict", s1, s2, "Change (pp)", "Verdict",
-             s1, s2, "Change (₹)", "Change %", "Verdict"]
+    heads = ["Brand", s1, s2, s1, s2, s1, s2, "Change (₹)", "Change %", "", s1, s2, "Change", "Change %", "", s1, s2, "Change (pp)", "",
+             s1, s2, "Change (₹)", "Change %", ""]
     for i, h in enumerate(heads, 1):
         c = ws.cell(5, i, h); c.font = fnt(True, "FFFFFF", 9); c.fill = fill(NAVY); c.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
     ws.row_dimensions[5].height = 62
@@ -365,8 +365,6 @@ def build_comparison(ws, disp, prng, nl, nm):
             ws.cell(r, out_abs, f'=IF(AND(ISNUMBER({x}),ISNUMBER({y})),{y}-{x},"{DASH}")')
             if out_pct: ws.cell(r, out_pct, f'=IF(AND(ISNUMBER({x}),ISNUMBER({y})),IF({x}<>0,{y}/{x}-1,"{DASH}"),"{DASH}")')
             key = f"{L(out_pct)}{r}" if out_pct else f"{L(out_abs)}{r}"
-            lo, hi = ("Improved", "Worsened") if lower_better else ("Worsened", "Improved")
-            ws.cell(r, verdict, f'=IF(NOT(ISNUMBER({key})),"{DASH}",IF({key}<={-thr},"{lo}",IF({key}>={thr},"{hi}","Flat")))')
         change("F", "G", 8, 9, 0.01, True, 10)
         change("K", "L", 13, 14, 0.01, False, 15)
         change("P", "Q", 18, None, 0.005, False, 19)
@@ -381,11 +379,8 @@ def build_comparison(ws, disp, prng, nl, nm):
         ws.cell(r, 18).number_format = '0.0%;-0.0%'
         if isp:
             for ci in range(1, 25): ws.cell(r, ci).fill = fill(NAVY)
-    for col in ("J", "O", "S", "X"):
-        rng = f"{col}{CMP_FIRST}:{col}{port}"
-        ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{CMP_FIRST}="Improved"'], fill=PatternFill("solid", bgColor="C6EFCE", fgColor="C6EFCE"), font=Font(color="006100", bold=True)))
-        ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{CMP_FIRST}="Worsened"'], fill=PatternFill("solid", bgColor="FFC7CE", fgColor="FFC7CE"), font=Font(color="9C0006", bold=True)))
-    ws.cell(port + 2, 1, ("Verdict rules: CPL and CPQL lower = Improved; Quality Leads and Quality Lead % higher = Improved; ±1% (±0.5 pp for Quality Lead %) = Flat. "
+    for col in ("J", "O", "S", "X"): ws.column_dimensions[col].hidden = True   # verdict columns removed (kept empty + hidden so column references stay stable)
+    ws.cell(port + 2, 1, ("Change columns: Change (₹) / Change % = October minus September (CPL, CPQL, Quality Leads); Change (pp) = percentage-point change in Quality Lead %. "
                           + ("'All brands with Meta spend' leaves out brands that have no Meta spend in the files (" + nometa_text() + ") so cost and rates use the same base. " if NOMETA else "'All brands with Meta spend' = every brand that has Meta spend in the files. ")
                           + CUTOFF))
     ws.merge_cells(start_row=port + 2, start_column=1, end_row=port + 2, end_column=24)
@@ -516,12 +511,11 @@ def build_dashboard(ws, wd, disp, brands):
     ws.row_dimensions[7].height = 34
     # ---- scorecard
     r0 = 12
-    ws.cell(r0, 2, "SCORECARD — DID EACH BRAND IMPROVE? (green = better, red = worse, grey = flat / not comparable)").font = fnt(True, "FFFFFF", 11)
+    ws.cell(r0, 2, f"SCORECARD — {MLAB[M2].upper()} BY BRAND").font = fnt(True, "FFFFFF", 11)
     for ci in range(2, 14): ws.cell(r0, ci).fill = fill(TEAL)
-    sh = ["Brand", f"CPL {MLAB[M2].split()[0]}", "CPL verdict", f"Quality Leads {MLAB[M2].split()[0]}", "Quality Leads verdict", f"Quality % {MLAB[M2].split()[0]}", "Quality % verdict",
-          f"CPQL {MLAB[M2].split()[0]}", "CPQL verdict"]
-    scols = [2, 3, 4, 5, 6, 7, 8, 9, 10]
-    srcc = [("A", None), ("G", '₹#,##0'), ("J", None), ("L", '#,##0'), ("O", None), ("Q", '0.0%'), ("S", None), ("U", '₹#,##0'), ("X", None)]
+    sh = ["Brand", f"CPL {MLAB[M2].split()[0]}", f"Quality Leads {MLAB[M2].split()[0]}", f"Quality % {MLAB[M2].split()[0]}", f"CPQL {MLAB[M2].split()[0]}"]
+    scols = [2, 3, 4, 5, 6]
+    srcc = [("A", None), ("G", '₹#,##0'), ("L", '#,##0'), ("Q", '0.0%'), ("U", '₹#,##0')]
     for i, h in enumerate(sh):
         c = ws.cell(r0 + 1, scols[i], h); c.font = fnt(True, NAVY, 9); c.fill = fill(LIGHT); c.alignment = Alignment(horizontal="center", wrap_text=True, vertical="center")
     ws.row_dimensions[r0 + 1].height = 30
@@ -532,11 +526,6 @@ def build_dashboard(ws, wd, disp, brands):
             if fm: c.number_format = fm
             if k == n: c.fill = fill(LIGHT)
     sr1, sr2 = r0 + 2, r0 + 2 + n
-    for col in "DFHJ":
-        rng = f"{col}{sr1}:{col}{sr2}"
-        ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{sr1}="Improved"'], fill=PatternFill("solid", bgColor="C6EFCE", fgColor="C6EFCE"), font=Font(color="006100", bold=True)))
-        ws.conditional_formatting.add(rng, FormulaRule(formula=[f'{col}{sr1}="Worsened"'], fill=PatternFill("solid", bgColor="FFC7CE", fgColor="FFC7CE"), font=Font(color="9C0006", bold=True)))
-        ws.conditional_formatting.add(rng, FormulaRule(formula=[f'OR({col}{sr1}="Flat",{col}{sr1}="{DASH}")'], fill=PatternFill("solid", bgColor="EDEDED", fgColor="EDEDED"), font=Font(color="595959")))
     # ---- key insights (formula-driven)
     ir = sr2 + 2
     ws.cell(ir, 2, "KEY INSIGHTS (update automatically)").font = fnt(True, "FFFFFF", 11)
@@ -550,7 +539,7 @@ def build_dashboard(ws, wd, disp, brands):
         f'=IFERROR("• Biggest CPL improvement: "&{best("I", "MIN")}&" ("&TEXT(MIN({rng("I")}),"0.0%")&"). Biggest CPL rise: "&{best("I", "MAX")}&" (+"&TEXT(MAX({rng("I")}),"0.0%")&").","• CPL change could not be ranked.")',
         f'=IFERROR("• Highest Quality Lead % in {s2}: "&{best("Q", "MAX")}&" ("&TEXT(MAX({rng("Q")}),"0.0%")&"). Lowest: "&{best("Q", "MIN")}&" ("&TEXT(MIN({rng("Q")}),"0.0%")&").","• Quality % could not be ranked.")',
         f'=IFERROR("• Lowest cost per quality lead in {s2}: "&{best("U", "MIN")}&" (₹"&TEXT(MIN({rng("U")}),"#,##0")&"). Highest: "&{best("U", "MAX")}&" (₹"&TEXT(MAX({rng("U")}),"#,##0")&").","• CPQL could not be ranked.")',
-        f'="• Brands improved on CPL: "&COUNTIF({rng("J")},"Improved")&" of "&(COUNTIF({rng("J")},"Improved")+COUNTIF({rng("J")},"Worsened")+COUNTIF({rng("J")},"Flat"))&" comparable brands; on CPQL: "&COUNTIF({rng("X")},"Improved")&" of "&(COUNTIF({rng("X")},"Improved")+COUNTIF({rng("X")},"Worsened")+COUNTIF({rng("X")},"Flat"))&"; on Quality Lead %: "&COUNTIF({rng("S")},"Improved")&" of "&(COUNTIF({rng("S")},"Improved")+COUNTIF({rng("S")},"Worsened")+COUNTIF({rng("S")},"Flat"))&"."',
+        f'="• Brands with a lower CPL in {s2}: "&COUNTIF({rng("I")},"<0")&" of "&COUNT({rng("I")})&"; with a lower CPQL: "&COUNTIF({rng("W")},"<0")&" of "&COUNT({rng("W")})&"; with a higher Quality Lead %: "&COUNTIF({rng("R")},">0")&" of "&COUNT({rng("R")})&"."',
     ]
     for i, f_ in enumerate(ins):
         c = ws.cell(ir + 1 + i, 2, f_); c.alignment = Alignment(wrap_text=True, vertical="top"); c.font = fnt(False, "000000", 10)
@@ -644,7 +633,6 @@ def build_logs(ws_log, ws_kpi, ws_val, brands, lines, vals, prng, nm, nl, npd, p
           ("CPL — Cost Per Lead", "Meta spend ÷ Meta Leads. Meta Leads = sum of Meta 'Results' whose indicator is leadgen (form leads), messaging_conversation_started (WhatsApp) or conversion_leads; landing-page-view and link-click results are not leads and are excluded.", "Meta campaign export (Daewoo: Daewoo report)"),
           ("Meta Leads", "Meta 'Results' lead-type count per brand and month (Comparison columns AP–AQ, Data_Meta column F, Master Pivot 'Meta Leads'). CRM Leads (all sources) are shown separately and drive Quality Lead %.", "Meta campaign export (Daewoo: Daewoo report)"),
           ("CPQL — Cost Per Quality Lead", "Meta spend ÷ Quality Leads", ""),
-          ("Verdict", "CPL/CPQL lower = Improved; Quality Leads / Quality Lead % higher = Improved; ±1 % (±0.5 pp) = Flat", ""),
           ("Dash (–)", "Cannot be calculated or not supplied by the source (zero spend / zero leads / no Meta export). Never a fake zero.", ""),
           ("Lead attribution", "Campaign in Meta export · Campaign outside Meta export (named, but its spend is not in the supplied Meta file) · Campaign not determinable (no campaign name and ad set not uniquely mapped)", "")]
     for row_ in kd: ws_kpi.append(list(row_))
