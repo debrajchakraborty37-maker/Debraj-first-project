@@ -11,6 +11,8 @@ Phone app / web app ──► Apps Script web app (inside your Sheet) ──► 
 The script is in `apps-script/Code.gs`. It does the same job as the Node server: login, dashboard, leads, agencies, hunt, rules, CSV export.
 Passwords are never saved, only salted hashes in the script's private properties. Every call except `health` needs a login token.
 
+> **Simplest way (recommended):** the script also serves the app itself. Add `Index.html` next to `Code.gs` (Apps Script: **+ > HTML**, name it `Index`), deploy, turn on **Open access**, and open the Web app address. The Dashboard appears directly, with no login, no separate hosting and no server address to paste.
+
 ## 1. Add the script to your Sheet (5 minutes)
 1. Open your Google Sheet. Menu **Extensions > Apps Script**.
 2. Delete the sample code. Paste all of `apps-script/Code.gs`.

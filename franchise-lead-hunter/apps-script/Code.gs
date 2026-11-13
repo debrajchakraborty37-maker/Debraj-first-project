@@ -426,10 +426,15 @@ function run_(raw) {
     return { status: err.status || 500, error: err.status ? err.message : 'server_error' };
   }
 }
-// GET: ?p=<base64url JSON request>&callback=<name>. No parameters means a plain health check.
+// GET: no parameters opens the app page; ?health=1 is a plain health check; ?p=<base64url JSON>&callback=<name> is the script-tag API.
+function api(raw) { return JSON.stringify(run_(raw)); } // called by the app page (google.script.run)
 function doGet(e) {
   var q = (e && e.parameter) || {};
-  if (!q.p) return out_(JSON.stringify({ ok: true }), '');
+  if (q.health) return out_(JSON.stringify({ ok: true }), '');
+  if (!q.p) { // opening the web app address shows the app itself
+    return HtmlService.createHtmlOutputFromFile('Index').setTitle('Franchise Lead Hunter')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   if (String(q.p).length > 7000) return out_(JSON.stringify({ status: 400, error: 'invalid_request' }), q.callback);
   var raw;
   try { raw = Utilities.newBlob(Utilities.base64DecodeWebSafe(q.p)).getDataAsString(); }

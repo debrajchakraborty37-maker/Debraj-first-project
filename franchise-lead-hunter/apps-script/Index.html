@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en"><head><base target="_top"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Franchise Lead Hunter</title>
+<style>
+:root{--bg:#14181a;--card:#1e2427;--ink:#eef2f0;--muted:#a3b0ac;--line:#2e373a;--brand:#4cc3b5;--onbrand:#0b1513;--tint:#173a36;--accent:#f2b73c;--onaccent:#1d1500;--hot:#ff8a5b;--warm:#f2b73c;--cold:#8db8ef}
+:root.light{--bg:#f6f4ef;--card:#fff;--ink:#14211f;--muted:#566360;--line:#d9d4c8;--brand:#0f5c55;--onbrand:#fff;--tint:#dcefec;--accent:#e8a317;--hot:#b93a0a;--warm:#8a5a00;--cold:#2f5f95}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;padding:14px 16px 90px}
+h1{font-size:26px;margin:0;font-weight:800;letter-spacing:-.3px}.mut{color:var(--muted);font-size:12px}.mono{font-family:ui-monospace,Menlo,monospace}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;display:block;width:100%;text-align:left}
+.tint{background:var(--tint);border-color:var(--tint)}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}.grid .card{margin:0}.num{font-size:28px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+.lab{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:20px 0 4px}
+.pill{display:inline-block;border:1.5px solid currentColor;border-radius:99px;padding:1px 8px;font-size:11px;font-weight:700;white-space:nowrap}
+.Hot{color:var(--hot)}.Warm{color:var(--warm)}.Cold{color:var(--cold)}
+.chip{display:inline-block;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 13px;font-size:13px;font-weight:600;margin:4px 6px 0 0}.chip.on{background:var(--tint);border-color:var(--brand)}
+.btn{display:block;width:100%;text-align:center;border-radius:14px;padding:13px;font-weight:700;margin-top:10px;border:1.5px solid var(--brand);color:var(--brand)}
+.btn.pri{background:var(--brand);color:var(--onbrand)}.btn.hunt{background:var(--accent);color:var(--onaccent);border-color:var(--accent)}.btn[disabled]{opacity:.6}
+input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:6px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 6px calc(8px + env(safe-area-inset-bottom))}
+nav div{display:flex;max-width:560px;width:100%}nav button{flex:1;padding:8px 0;font-size:12px;font-weight:600;color:var(--muted);position:relative}
+nav button.on{color:var(--brand)}nav button.on:before{content:"";position:absolute;top:-6px;left:35%;right:35%;height:3px;border-radius:2px;background:var(--brand)}
+.bar{height:10px;border-radius:5px;background:var(--brand)}.barrow{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:13px}.barrow span:first-child{width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.barrow .t{flex:1}.barrow b{width:26px;text-align:right}
+.field{display:grid;grid-template-columns:96px 1fr;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}.field:first-child{border-top:0}.field span:first-child{color:var(--muted)}.field span:last-child{overflow-wrap:anywhere}
+.stack{position:relative;height:400px;margin-top:14px;touch-action:pan-y}.sw{position:absolute;left:0;right:0;top:0;height:380px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:18px;user-select:none;-webkit-user-select:none}
+.sw.top{z-index:3;cursor:grab;touch-action:none}.sw.n2{top:14px;transform:scale(.95);opacity:.65;z-index:2}.sw.n3{top:26px;transform:scale(.9);opacity:.35;z-index:1}
+.stamp{position:absolute;top:18px;padding:3px 10px;border:2px solid;border-radius:8px;font-weight:800;letter-spacing:.08em;opacity:0}.stamp.k{right:18px;color:var(--brand)}.stamp.s{left:18px;color:var(--hot)}
+.big{font:700 36px ui-monospace,Menlo,monospace;color:var(--accent);margin:14px 0 0}
+.act{display:flex;justify-content:center;gap:14px;margin-top:6px}.act button{min-width:92px;border-radius:99px;padding:13px 0;font-weight:700;text-align:center}
+.no{border:1.5px solid var(--hot);color:var(--hot)}.yes{background:var(--brand);color:var(--onbrand)}.undo{border:1.5px solid var(--line);color:var(--muted)}.act button[disabled]{opacity:.4}
+.err{color:var(--hot);font-weight:600;font-size:13px;margin-top:8px}.toast{position:fixed;left:16px;right:16px;bottom:78px;max-width:528px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 14px;font-weight:600;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}.toast.on{opacity:1}
+.back{color:var(--brand);font-weight:600;margin-bottom:8px}.log{border-left:2px solid var(--line);padding-left:12px;margin:12px 0 0 4px}.log div{margin-bottom:12px;font-size:13px}
+.empty{text-align:center;color:var(--muted);padding:40px 0}a{color:var(--brand)}
+</style></head><body><div id="app"><main id="main"><div class="empty">Loading…</div></main><nav id="nav" hidden><div id="navin"></div></nav></div><div class="toast" id="toast"></div>
+<script>
+var S={tab:'dash',view:null,id:null,token:null,user:null,dash:null,leads:[],agencies:[],runs:[],rules:null,all:false,q:'',qual:'All',af:'All',hunting:false,hist:[],csv:null,err:''};
+var STAT=['New','Shortlisted','Contacted','Meeting','Negotiation','Won','Lost','Skipped'];
+var $=function(s){return document.querySelector(s)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function cr(n){return n==null?'Not stated':'Rs '+n+' cr'}
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on')},2400)}
+function call(action,args){return new Promise(function(res,rej){
+  var req=JSON.stringify({action:action,token:S.token,args:args||{}});
+  google.script.run.withSuccessHandler(function(txt){var j;try{j=JSON.parse(txt)}catch(e){return rej({status:500})}if(j.status>=400)rej({status:j.status});else res(j.data)})
+    .withFailureHandler(function(){rej({status:0})}).api(req)})}
+function pill(q){return '<span class="pill '+q+'">'+(q||'Not rated')+'</span>'}
+function chips(list,cur,act){return list.map(function(o){return '<button class="chip'+(o===cur?' on':'')+'" data-a="'+act+'" data-v="'+esc(o)+'">'+esc(o)+'</button>'}).join('')}
+function bars(entries){if(!entries.length)return '<div class="card mut">Nothing to show yet.</div>';var m=Math.max.apply(null,entries.map(function(e){return e[1]}));
+  return '<div class="card">'+entries.map(function(e){return '<div class="barrow"><span>'+esc(e[0])+'</span><span class="t"><div class="bar" style="width:'+Math.round(100*e[1]/m)+'%"></div></span><b class="mono">'+e[1]+'</b></div>'}).join('')+'</div>'}
+function kpi(l,v,h,c){return '<div class="card"><div class="mut">'+l+'</div><div class="num" style="color:'+(c||'var(--ink)')+'">'+v+'</div><div class="mut">'+h+'</div></div>'}
+function lead(l){return '<button class="card" data-a="lead" data-v="'+esc(l.id)+'"><div class="row"><b>'+esc(l.name)+'</b>'+pill(l.quality)+'</div><div class="mut">'+esc(l.city)+' · '+esc(l.brand)+'</div><div class="row" style="margin-top:8px"><b class="mono" style="color:var(--accent)">'+cr(l.budgetCr)+'</b><span class="mut">'+esc(l.status)+'</span></div></button>'}
+function byId(list,id){return list.filter(function(x){return x.id===id})[0]}
+function queue(){return S.leads.filter(function(l){return l.status==='New'}).sort(function(a,b){return (b.budgetCr||0)-(a.budgetCr||0)})}
+
+function vDash(){var d=S.dash;if(!d)return '<h1>Dashboard</h1><div class="empty">Loading…</div>';var L=d.leads,A=d.agencies,H=d.hunt;
+ var st=STAT.filter(function(s){return L.byStatus[s]}).map(function(s){return [s,L.byStatus[s]]});
+ var ty=Object.keys(A.byType).map(function(k){return [k,A.byType[k]]}).sort(function(a,b){return b[1]-a[1]});
+ return '<h1>Dashboard</h1><div class="mut">B2B HNI leads and agencies, live from your Google Sheet</div>'+
+ '<div class="lab">Leads</div><div class="grid">'+kpi('New',queue().length,'waiting in Triage','var(--accent)')+kpi('HNI B2B',L.hniB2b,'of '+L.total+' in the Sheet')+kpi('Hot',L.hot,'best matches','var(--hot)')+kpi('Follow-ups due',L.followUpsDue,'today or overdue',L.followUpsDue?'var(--hot)':'')+'</div>'+
+ '<div class="card row"><span class="mut">Pipeline value (HNI B2B, open)</span><b class="mono" style="color:var(--accent);font-size:18px">Rs '+L.pipelineValueCr+' cr</b></div>'+
+ '<div class="lab">Leads by status</div>'+bars(st)+'<div class="lab">Top cities</div>'+bars(L.topCities.map(function(c){return [c.name,c.count]}))+
+ '<div class="lab">Agencies</div><div class="grid">'+kpi('Total',A.total,'in the Sheet')+kpi('Leads only',A.leadsOnly,'lead generation','var(--brand)')+kpi('New',A.newCount,'not yet reviewed','var(--accent)')+'</div>'+
+ '<div class="lab">Agencies by type</div>'+bars(ty)+
+ '<div class="lab">Hunt</div><div class="card tint"><b>'+(H.lastRun?'Last hunt '+esc(H.lastRun.startedAt):'No hunt has run yet')+'</b><div style="font-size:13px">'+(H.lastRun?'Found '+H.lastRun.found+' · Saved '+H.lastRun.saved+' · Duplicates '+H.lastRun.duplicates:'Schedule: '+esc(H.schedule))+'</div>'+
+ '<div style="height:6px;border-radius:3px;background:var(--line);margin:10px 0 4px"><div style="height:6px;border-radius:3px;background:var(--brand);width:'+(H.monthlyQueryCap?Math.min(100,Math.round(100*H.queriesUsedThisMonth/H.monthlyQueryCap)):100)+'%"></div></div>'+
+ '<div style="font-size:12px">Search budget: '+H.queriesUsedThisMonth+' of '+H.monthlyQueryCap+' queries this month</div>'+(H.searchConfigured?'':'<div class="err">Google Search is not set up yet (Lead Hunter menu > 3).</div>')+
+ '<button class="btn pri" data-a="hunt"'+(S.hunting?' disabled':'')+'>'+(S.hunting?'Hunting…':'Hunt now')+'</button></div>'}
+
+function vTriage(){var q=queue();var h='<div class="row"><h1>Triage</h1><span class="mut">'+(q.length?q.length+' to review':'All done')+'</span></div>';
+ if(!q.length)return h+'<div class="empty"><b style="color:var(--ink);font-size:17px">You are all caught up</b><br>Run a hunt to find more.</div><button class="btn hunt" data-a="hunt">Hunt now</button><div class="act"><button class="undo" data-a="undo"'+(S.hist.length?'':' disabled')+'>Undo last swipe</button></div>';
+ function face(l,c,top){return '<div class="sw '+c+'"'+(top?' id="top"':'')+'><span class="stamp k" id="sk">KEEP</span><span class="stamp s" id="ss">SKIP</span><div class="row">'+pill(l.quality)+'<span class="mut">'+esc(l.source||'Sheet')+' · '+esc(l.dateReceived)+'</span></div><div class="big">'+cr(l.budgetCr)+'</div><div class="mut">Budget</div><h2 style="margin:14px 0 4px;font-size:19px;line-height:1.25">'+esc(l.name)+'</h2><div class="mut">'+esc(l.city)+' · '+esc(l.brand)+'</div><div style="margin-top:10px"><span class="chip">'+esc(l.profession)+'</span><span class="chip">'+esc(l.segment)+'</span></div><div class="mut" style="position:absolute;left:18px;bottom:16px">Phone and email: not shown on source</div></div>'}
+ var s='<div class="stack">'+(q[2]?face(q[2],'n3'):'')+(q[1]?face(q[1],'n2'):'')+face(q[0],'top',1)+'</div>';
+ return h+s+'<div class="act"><button class="no" data-a="skip">Skip</button><button class="undo" data-a="undo"'+(S.hist.length?'':' disabled')+'>Undo</button><button class="yes" data-a="keep">Keep</button></div><div class="mut" style="text-align:center;margin-top:10px">Drag the card right to keep, left to skip</div>'}
+
+function vLeads(){var n=S.q.toLowerCase();var items=S.leads.filter(function(l){return l.status!=='Skipped'&&(S.qual==='All'||l.quality===S.qual)&&(!n||(l.name+l.city+l.brand+l.profession).toLowerCase().indexOf(n)>-1)}).sort(function(a,b){return (b.budgetCr||0)-(a.budgetCr||0)});
+ return '<h1>Leads</h1><input id="q" placeholder="Search city, brand or profile" value="'+esc(S.q)+'"><div>'+chips(['All','Hot','Warm','Cold'],S.qual,'qual')+'</div>'+
+ '<label class="mut" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="all" style="width:auto;margin:0" '+(S.all?'':'checked')+'> B2B HNI only</label><div id="list">'+(items.length?items.map(lead).join(''):'<div class="empty">No leads match.</div>')+'</div>'}
+function vLead(){var l=byId(S.leads,S.id);if(!l)return '<button class="back" data-a="back">‹ Leads</button><div class="empty">Not found.</div>';
+ return '<button class="back" data-a="back">‹ Leads</button><h1 style="font-size:22px">'+esc(l.name)+'</h1><div style="margin-top:8px">'+pill(l.quality)+' <span class="mut">'+esc(l.segment)+'</span></div>'+
+ '<div class="card"><div class="mut">Budget</div><div class="num" style="color:var(--accent)">'+cr(l.budgetCr)+'</div></div>'+
+ '<div class="card"><div class="field"><span>Brand</span><span>'+esc(l.brand)+'</span></div><div class="field"><span>City</span><span>'+esc(l.city)+'</span></div><div class="field"><span>Profession</span><span>'+esc(l.profession)+'</span></div><div class="field"><span>Source</span><span>'+esc(l.source)+'</span></div><div class="field"><span>Received</span><span>'+esc(l.dateReceived)+'</span></div><div class="field"><span>Follow-up</span><span>'+esc(l.nextFollowUp||'Not set')+'</span></div></div>'+
+ '<div class="lab">Status</div><div>'+chips(STAT,l.status,'status')+'</div><div class="lab">Follow-up date</div><input type="date" id="fu"><button class="btn" data-a="fu">Save follow-up date</button>'+
+ '<div class="lab">Notes</div><textarea id="notes" rows="5" maxlength="2000">'+esc(l.notes)+'</textarea><button class="btn" data-a="notes">Save notes</button>'+
+ (l.sourceUrl&&/^https?:/.test(l.sourceUrl)?'<a class="btn" style="text-decoration:none" target="_blank" rel="noopener" href="'+esc(l.sourceUrl)+'">Open source profile</a>':'')+
+ (l.phone?'<a class="btn pri" style="text-decoration:none" href="tel:'+esc(l.phone)+'">Call '+esc(l.phone)+'</a>':'')+(l.email?'<a class="btn" style="text-decoration:none" href="mailto:'+esc(l.email)+'">Email '+esc(l.email)+'</a>':'')+(!l.phone&&!l.email?'<div class="card mut" style="text-align:center;border-style:dashed">Contact hidden on source</div>':'')}
+function vAgs(){var items=S.agencies.filter(function(a){return S.af==='All'||a.leadsOnly==='Yes'});
+ return '<h1>Agencies</h1><div style="margin-top:8px">'+chips(['All','Leads only'],S.af,'af')+'</div>'+(items.length?items.map(function(a){return '<button class="card" data-a="ag" data-v="'+esc(a.id)+'"><div class="row"><b>'+esc(a.name)+'</b><span class="mut">'+esc(String(a.city).split(',')[0])+'</span></div><div class="mut">'+esc(a.type)+'</div><div class="mono" style="font-size:13px;font-weight:700;color:var(--accent);margin-top:8px">'+esc(a.pricing||'Pricing not stated')+'</div></button>'}).join(''):'<div class="empty">No agencies yet.</div>')}
+function vAg(){var a=byId(S.agencies,S.id);if(!a)return '<button class="back" data-a="back">‹ Agencies</button>';
+ return '<button class="back" data-a="back">‹ Agencies</button><h1 style="font-size:22px">'+esc(a.name)+'</h1><div class="mut">'+esc(a.type)+'</div><div class="card"><div class="field"><span>City</span><span>'+esc(a.city)+'</span></div><div class="field"><span>Leads only</span><span>'+esc(a.leadsOnly)+'</span></div><div class="field"><span>Pricing</span><span>'+esc(a.pricing)+'</span></div><div class="field"><span>Phone</span><span>'+esc(a.phone||'Not shown')+'</span></div><div class="field"><span>Email</span><span>'+esc(a.email||'Not shown')+'</span></div><div class="field"><span>Website</span><span>'+esc(a.website)+'</span></div></div>'+
+ '<div class="lab">Services and claims</div><div class="card" style="font-size:14px">'+esc(a.services||'Not stated')+'</div><div class="mut" style="margin-top:6px">Claims come from the agency\'s own site and are unverified.</div><div class="lab">Status</div><div>'+chips(STAT,a.status,'astatus')+'</div>'+
+ (/^https?:/.test(a.website)?'<a class="btn" style="text-decoration:none" target="_blank" rel="noopener" href="'+esc(a.website)+'">Open website</a>':'')+(a.phone?'<a class="btn pri" style="text-decoration:none" href="tel:'+esc(a.phone)+'">Call</a>':'')}
+function vLog(){var d=S.dash,r=S.rules;
+ return '<h1>Sync and runs</h1><div class="card tint"><b>Google Sheet is the master copy</b><div style="font-size:13px">Leads '+(d?d.leads.total:0)+' · Agencies '+(d?d.agencies.total:0)+' · changes save to the Sheet at once</div></div>'+
+ '<button class="btn hunt" data-a="hunt"'+(S.hunting?' disabled':'')+'>'+(S.hunting?'Hunting…':'Hunt now')+'</button><div class="lab">Recent runs</div>'+(S.runs.length?'<div class="log">'+S.runs.slice(0,15).map(function(x){return '<div><b>'+esc(x.startedAt)+' · '+esc(x.trigger)+'</b><div class="mut">Found '+x.found+' · Saved '+x.saved+' · Duplicates '+x.duplicates+' · Filtered '+x.filtered+' · Queries '+x.queries+'</div>'+(x.notes?'<div style="color:'+(x.errors>0?'var(--hot)':'var(--muted)')+';font-size:12px">'+esc(x.notes)+'</div>':'')+'</div>'}).join('')+'</div>':'<div class="mut">No runs yet.</div>')+
+ '<div class="lab">Export a copy</div><div class="row" style="gap:10px"><button class="btn" data-a="exp" data-v="leads">Leads CSV</button><button class="btn" data-a="exp" data-v="agencies">Agencies CSV</button></div>'+(S.csv?'<textarea id="csv" rows="6" readonly>'+esc(S.csv)+'</textarea><button class="btn" data-a="copy">Copy to clipboard</button>':'')+
+ (r?'<div class="lab">Hunt rules</div><div class="card"><label class="mut">Brands (comma separated)</label><input id="rb" value="'+esc(r.brands.join(', '))+'"><label class="mut">Cities (comma separated)</label><input id="rc" value="'+esc(r.cities.join(', '))+'"><label class="mut">HNI line (Rs crore)</label><input id="rh" value="'+esc(r.hniMinCr)+'" inputmode="decimal"><label class="mut">Monthly search budget (queries)</label><input id="rm" value="'+esc(r.monthlyQueryCap)+'" inputmode="numeric"><div style="margin-top:8px">'+chips(['hourly','every3h','daily','off'],r.schedule,'sched')+'</div><button class="btn pri" data-a="saverules">Save rules</button></div>':'')+
+ '<div class="lab">Display</div><button class="chip" data-a="theme">Switch light / dark</button>'}
+function vLogin(){return '<h1>Franchise<br>Lead Hunter</h1><div class="mut" style="margin:8px 0 18px">Sign in with your team account.</div><input id="em" placeholder="Login ID" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><div class="err">'+esc(S.err)+'</div><button class="btn pri" data-a="login">Sign in</button>'}
+
+function render(){var v;if(!S.user)v=vLogin();else if(S.view==='lead')v=vLead();else if(S.view==='ag')v=vAg();else v={dash:vDash,triage:vTriage,leads:vLeads,ags:vAgs,log:vLog}[S.tab]();
+ $('#main').innerHTML=v;var nav=$('#nav');nav.hidden=!S.user;
+ if(S.user)$('#navin').innerHTML=[['dash','Dashboard'],['triage','Triage'+(queue().length?' ('+queue().length+')':'')],['leads','Leads'],['ags','Agencies'],['log','Log']].map(function(t){return '<button data-a="tab" data-v="'+t[0]+'"'+(S.tab===t[0]&&!S.view?' class="on"':'')+'>'+t[1]+'</button>'}).join('');
+ bindDrag()}
+function load(){return Promise.all([call('dashboard'),call('leads',{all:S.all}),call('agencies'),call('runs'),call('rules')]).then(function(r){S.dash=r[0];S.leads=r[1].items;S.agencies=r[2].items;S.runs=r[3].items;S.rules=r[4];render()}).catch(fail)}
+function fail(e){if(e&&e.status===401){S.user=null;S.token=null;render();return}toast(e&&e.status===429?'Please wait a moment and try again.':'Could not reach the Sheet. Try again.')}
+function patchLead(id,ch,msg){var l=byId(S.leads,id);if(!l)return Promise.resolve();var before=JSON.parse(JSON.stringify(l));Object.keys(ch).forEach(function(k){l[k]=ch[k]});render();
+ return call('patchLead',{id:id,changes:ch}).then(function(u){Object.keys(u).forEach(function(k){l[k]=u[k]});if(msg)toast(msg);render()}).catch(function(e){Object.keys(before).forEach(function(k){l[k]=before[k]});render();fail(e)})}
+function decide(keep){var q=queue();if(!q.length)return;var l=q[0];var c=$('#top');S.hist.push({id:l.id,prev:l.status});
+ function go(){patchLead(l.id,{status:keep?'Shortlisted':'Skipped'},keep?'Kept. Saved to the Sheet.':'Skipped.')}
+ if(c){c.style.transition='transform .22s,opacity .22s';c.style.transform='translateX('+(keep?420:-420)+'px) rotate('+(keep?18:-18)+'deg)';c.style.opacity='0';setTimeout(go,200)}else go()}
+function bindDrag(){var c=$('#top');if(!c)return;var sx=0,dx=0,on=false;
+ c.addEventListener('pointerdown',function(e){on=true;sx=e.clientX;c.setPointerCapture(e.pointerId)});
+ c.addEventListener('pointermove',function(e){if(!on)return;dx=e.clientX-sx;c.style.transform='translateX('+dx+'px) rotate('+(dx/18)+'deg)';$('#sk').style.opacity=Math.max(0,Math.min(1,dx/90));$('#ss').style.opacity=Math.max(0,Math.min(1,-dx/90))});
+ function end(){if(!on)return;on=false;if(Math.abs(dx)>100){var k=dx>0;dx=0;decide(k)}else{c.style.transition='transform .18s';c.style.transform='';$('#sk').style.opacity=0;$('#ss').style.opacity=0;dx=0}}
+ c.addEventListener('pointerup',end);c.addEventListener('pointercancel',end)}
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.addEventListener('click',function(e){var b=e.target.closest('[data-a]');if(!b)return;var a=b.dataset.a,v=b.dataset.v;
+ if(a==='tab'){S.tab=v;S.view=null}else if(a==='lead'){S.view='lead';S.id=v}else if(a==='ag'){S.view='ag';S.id=v}else if(a==='back')S.view=null;
+ else if(a==='qual')S.qual=v;else if(a==='af')S.af=v;
+ else if(a==='status'){patchLead(S.id,{status:v},'Status set to '+v+'. Sheet updated.');return}
+ else if(a==='astatus'){var ag=byId(S.agencies,S.id);ag.status=v;render();call('patchAgency',{id:S.id,changes:{status:v}}).then(function(){toast('Status saved to the Sheet.')}).catch(fail);return}
+ else if(a==='fu'){var d=$('#fu').value;if(!d)return toast('Pick a date first.');var p=d.split('-');patchLead(S.id,{nextFollowUp:p[2]+' '+MON[+p[1]-1]+' '+p[0]},'Follow-up saved.');return}
+ else if(a==='notes'){patchLead(S.id,{notes:$('#notes').value},'Notes saved.');return}
+ else if(a==='keep'){decide(true);return}else if(a==='skip'){decide(false);return}
+ else if(a==='undo'){var h=S.hist.pop();if(h)patchLead(h.id,{status:h.prev},'Undone.');return}
+ else if(a==='hunt'){if(S.hunting)return;S.hunting=true;render();call('hunt').then(function(r){S.hunting=false;toast(r&&r.saved!=null?'Hunt finished: '+r.saved+' saved, '+r.duplicates+' duplicates':'A hunt is already running');return load()}).catch(function(e){S.hunting=false;render();fail(e)});return}
+ else if(a==='exp'){call('export',{kind:v}).then(function(d){S.csv=d.csv;render()}).catch(fail);return}
+ else if(a==='copy'){var t=$('#csv');t.select();try{document.execCommand('copy');toast('Copied.')}catch(x){toast('Select the text and copy it.')}return}
+ else if(a==='sched'){S.rules.schedule=v}
+ else if(a==='saverules'){var sp=function(x){return x.split(',').map(function(s){return s.trim()}).filter(Boolean)};
+  call('saveRules',{changes:{brands:sp($('#rb').value),cities:sp($('#rc').value),hniMinCr:parseFloat($('#rh').value)||1,monthlyQueryCap:parseInt($('#rm').value,10)||0,schedule:S.rules.schedule}}).then(function(r){S.rules=r;toast('Rules saved to the Sheet.');render()}).catch(fail);return}
+ else if(a==='theme')document.documentElement.classList.toggle('light')
+ else if(a==='login'){call('login',{}).catch(function(){});S.err='';
+  new Promise(function(res,rej){google.script.run.withSuccessHandler(function(t){var j=JSON.parse(t);j.status>=400?rej(j):res(j.data)}).withFailureHandler(rej).api(JSON.stringify({action:'login',email:$('#em').value,password:$('#pw').value}))})
+   .then(function(d){S.token=d.token;S.user=d.user;return load()}).catch(function(j){S.err=j&&j.status===429?'Too many attempts. Wait a few minutes.':'Email or password is incorrect.';render()});return}
+ render();window.scrollTo(0,0)});
+document.addEventListener('input',function(e){if(e.target.id==='q'){S.q=e.target.value;var n=S.q.toLowerCase();var items=S.leads.filter(function(l){return l.status!=='Skipped'&&(S.qual==='All'||l.quality===S.qual)&&(!n||(l.name+l.city+l.brand+l.profession).toLowerCase().indexOf(n)>-1)});$('#list').innerHTML=items.length?items.map(lead).join(''):'<div class="empty">No leads match.</div>'}
+ if(e.target.id==='all'){S.all=!e.target.checked;load()}});
+call('me').then(function(d){S.user=d.user;return load()}).catch(function(e){S.user=null;render()});
+</script></body></html>

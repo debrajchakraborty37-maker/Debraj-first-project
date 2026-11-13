@@ -38,13 +38,17 @@ const ctx = {
     createTextOutput: (t) => ({ t, setMimeType(m) { this.m = m; return this; }, getContent() { return this.t; } }) },
   SpreadsheetApp: { getActive: () => ({ getSheetByName: (n) => sheets[n] || null, insertSheet: (n) => (sheets[n] = makeSheet([[]])) }) },
   UrlFetchApp: { fetch: () => ({ getResponseCode: () => 500, getContentText: () => '{}' }) }, ScriptApp: {},
+  HtmlService: {},
 };
 vm.createContext(ctx); vm.runInContext(code, ctx);
 vm.runInContext("saveUser_('admin@example.com','Admin','admin','dev-password-12345'); sheet_('Leads', LEAD_FIELDS); sheet_('Agencies', AGENCY_FIELDS); sheet_('Runs', RUN_FIELDS); sheet_('Rules', RULE_FIELDS); backfill_();", ctx);
 if (mode === 'open') store.OPEN_MODE = '1';
 
+const SHIM = `<script>window.google={script:{run:{_s:null,_f:null,withSuccessHandler(f){const r=Object.create(this);r._s=f;return r},withFailureHandler(f){const r=Object.create(this);r._f=f;return r},api(x){fetch('/api',{method:'POST',body:x}).then(r=>r.text()).then(t=>this._s&&this._s(t)).catch(e=>this._f&&this._f(e))}}}};</script>`;
 http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/' ) { res.writeHead(200, { 'Content-Type': 'text/html' }); return res.end(fs.readFileSync(new URL('../Index.html', import.meta.url), 'utf8').replace('<head>', '<head>' + SHIM)); }
+  if (u.pathname === '/api' && req.method === 'POST') { let b = ''; req.on('data', (c) => (b += c)); return req.on('end', () => { res.writeHead(200, { 'Content-Type': 'text/plain' }); res.end(ctx.api(b)); }); }
   const send = (o) => { res.writeHead(200, { 'Content-Type': o.m || 'application/json' }); res.end(o.getContent()); }; // note: no CORS headers on purpose
   if (req.method === 'GET') return send(ctx.doGet({ parameter: Object.fromEntries(u.searchParams) }));
   let body = ''; req.on('data', (c) => (body += c)); req.on('end', () => send(ctx.doPost({ postData: { contents: body } })));

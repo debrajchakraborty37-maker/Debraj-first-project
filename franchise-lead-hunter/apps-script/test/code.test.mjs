@@ -50,6 +50,7 @@ function boot({ searchItems = [] } = {}) {
       insertSheet: (n) => (sheets[n] = makeSheet([[]])) }) },
     UrlFetchApp: { fetch: (url) => { fetches.push(url); return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ items: searchItems }) }; } },
     ScriptApp: {},
+    HtmlService: { XFrameOptionsMode: { ALLOWALL: 1 }, createHtmlOutputFromFile: (n) => ({ file: n, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; }, getContent() { return '<html>' + n + '</html>'; } }) },
   };
   vm.createContext(sandbox);
   vm.runInContext(code, sandbox);
@@ -196,7 +197,9 @@ test('GET transport: script-tag style reply works, validates the callback name, 
   const t = boot(); vm_run(t);
   const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
   const get = (o, callback) => t.sandbox.doGet({ parameter: { p: enc(o), ...(callback ? { callback } : {}) } }).getContent();
-  assert.equal(JSON.parse(t.sandbox.doGet({ parameter: {} }).getContent()).ok, true);
+  assert.equal(JSON.parse(t.sandbox.doGet({ parameter: { health: '1' } }).getContent()).ok, true);
+  assert.equal(t.sandbox.doGet({ parameter: {} }).file, 'Index'); // opening the address serves the app page
+  assert.equal(JSON.parse(t.sandbox.api(JSON.stringify({ action: 'health' }))).status, 200);
   const login = get({ action: 'login', email: 'admin@example.com', password: 'test-only-password-1' }, 'cb1');
   assert.ok(login.startsWith('cb1("') && login.endsWith('");'));
   const inner = JSON.parse(JSON.parse(login.slice(4, -2)));
