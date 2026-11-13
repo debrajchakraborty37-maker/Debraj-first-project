@@ -44,7 +44,7 @@ function boot({ searchItems = [] } = {}) {
       setProperties: (o) => Object.assign(store, o), deleteProperty: (k) => { delete store[k]; } }) },
     CacheService: { getScriptCache: () => ({ get: (k) => cache[k] ?? null, put: (k, v) => { cache[k] = v; }, remove: (k) => { delete cache[k]; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
-    ContentService: { MimeType: { JSON: 'json' }, createTextOutput: (t) => ({ t, setMimeType() { return this; }, getContent() { return this.t; } }) },
+    ContentService: { MimeType: { JSON: 'json', JAVASCRIPT: 'js' }, createTextOutput: (t) => ({ t, setMimeType(m) { this.m = m; return this; }, getContent() { return this.t; } }) },
     SpreadsheetApp: { getActive: () => ({
       getSheetByName: (n) => sheets[n] || null,
       insertSheet: (n) => (sheets[n] = makeSheet([[]])) }) },
@@ -190,4 +190,22 @@ test('open access: off by default; when on, no login is needed; when off again, 
   t.sandbox.props_().deleteProperty('OPEN_MODE');
   assert.equal(t.call('dashboard').status, 401);
   assert.equal(t.call('login', { email: 'admin@example.com', password: 'test-only-password-1' }).status, 200);
+});
+
+test('GET transport: script-tag style reply works, validates the callback name, health stays plain', () => {
+  const t = boot(); vm_run(t);
+  const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const get = (o, callback) => t.sandbox.doGet({ parameter: { p: enc(o), ...(callback ? { callback } : {}) } }).getContent();
+  assert.equal(JSON.parse(t.sandbox.doGet({ parameter: {} }).getContent()).ok, true);
+  const login = get({ action: 'login', email: 'admin@example.com', password: 'test-only-password-1' }, 'cb1');
+  assert.ok(login.startsWith('cb1("') && login.endsWith('");'));
+  const inner = JSON.parse(JSON.parse(login.slice(4, -2)));
+  assert.equal(inner.status, 200);
+  const token = inner.data.token;
+  const dash = JSON.parse(get({ action: 'dashboard', token })); // no callback: plain JSON
+  assert.equal(dash.data.leads.total, 5);
+  assert.equal(JSON.parse(get({ action: 'dashboard' })).status, 401);
+  // a callback that is not a plain name is ignored (no script injection)
+  assert.equal(get({ action: 'dashboard', token }, 'alert(1);//').startsWith('{'), true);
+  assert.equal(t.sandbox.doGet({ parameter: { p: '!!not-base64' } }).getContent().includes('invalid_request'), true);
 });

@@ -51,6 +51,7 @@ Check it: open the URL in a browser. You should see `{"ok":true}`.
 Menu **Lead Hunter > Add team member** (email, name, password). They sign in the same way. Only the admin can change Hunt rules.
 
 ## Good to know
+- **How the web app talks to the script:** browsers block normal calls to Google's script servers, so the web app loads each reply as a script tag (a GET with the request in the address). Phone apps use POST. When a login is used, the password travels in that web address over HTTPS, so keep a strong password and keep the app address private.
 - **Slower than a server.** Each call takes about 1 to 3 seconds. Fine for a few hundred leads; for thousands, use the Cloud Run version.
 - **Limits:** Apps Script allows about 20,000 web calls and 20,000 search fetches a day on a normal Google account (more on Workspace). A hunt must finish in 6 minutes; the 12-query default is well inside that.
 - **Passwords:** hashed with a salt, 3,000 rounds of HMAC-SHA256. That is weaker than the Node server's scrypt, so use a long password. Five wrong tries lock an account for 15 minutes.

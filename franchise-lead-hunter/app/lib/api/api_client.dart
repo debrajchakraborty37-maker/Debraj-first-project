@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../models.dart';
+import 'jsonp_stub.dart' if (dart.library.js_interop) 'jsonp_web.dart';
 
 class ApiException implements Exception {
   final int status;
@@ -24,7 +25,7 @@ class ApiClient {
   final http.Client _http;
 
   /// A Google Apps Script web app (the Sheet as the server) speaks one POST address with an "action"; everything else is REST.
-  bool get isSheetServer => RegExp(r'^https://script\.google(usercontent)?\.com/').hasMatch(base);
+  bool get isSheetServer => RegExp(r'^(https://script\.google(usercontent)?\.com/|http://localhost:\d+/exec)').hasMatch(base);
   String? token;
   void Function()? onUnauthorized;
 
@@ -77,21 +78,9 @@ class ApiClient {
       if (args.isNotEmpty) 'args': args,
     });
     try {
-      // text/plain keeps this a "simple" request, so browsers do not need a CORS preflight.
-      final req = http.Request('POST', Uri.parse(base))
-        ..headers['Content-Type'] = 'text/plain;charset=utf-8'
-        ..body = payload;
-      if (!kIsWeb) req.followRedirects = false;
-      var res = await http.Response.fromStream(await _http.send(req).timeout(timeout));
-      for (var hops = 0; hops < 5 && const {301, 302, 303, 307, 308}.contains(res.statusCode); hops++) {
-        final loc = res.headers['location'];
-        if (loc == null) break;
-        final get = http.Request('GET', Uri.parse(loc));
-        if (!kIsWeb) get.followRedirects = false;
-        res = await http.Response.fromStream(await _http.send(get).timeout(timeout));
-      }
+      final res = await _sheetRoundTrip(payload, timeout);
       final Map<String, dynamic> j;
-      try { j = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>; }
+      try { j = jsonDecode(res) as Map<String, dynamic>; }
       catch (_) { throw const ApiException(0, 'The Sheet server did not answer correctly. Check the server address.'); }
       final status = (j['status'] as num?)?.toInt() ?? 500;
       if (status == 401 && action != 'login') onUnauthorized?.call();
@@ -102,8 +91,41 @@ class ApiClient {
     } on ApiException {
       rethrow;
     } catch (_) {
-      throw const ApiException(0, 'Cannot reach the server. Check your connection and try again.');
+      throw ApiException(0, 'Cannot reach the Sheet server. Check the address ends in /exec, that the script is deployed for "Anyone", and your connection.');
     }
+  }
+
+  /// One round trip to the Sheet server, returned as JSON text. Retries once, because the script can be slow to wake up.
+  Future<String> _sheetRoundTrip(String payload, Duration timeout) async {
+    Object? last;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (kIsWeb) {
+          final enc = base64Url.encode(utf8.encode(payload));
+          if (enc.length <= 6500) {
+            return await jsonpGet(Uri.parse(base).replace(queryParameters: {'p': enc}), timeout);
+          }
+        }
+        // Large requests (and phone apps) use POST. text/plain keeps it a "simple" request, so no CORS preflight.
+        final req = http.Request('POST', Uri.parse(base))
+          ..headers['Content-Type'] = 'text/plain;charset=utf-8'
+          ..body = payload;
+        if (!kIsWeb) req.followRedirects = false;
+        var res = await http.Response.fromStream(await _http.send(req).timeout(timeout));
+        for (var hops = 0; hops < 5 && const {301, 302, 303, 307, 308}.contains(res.statusCode); hops++) {
+          final loc = res.headers['location'];
+          if (loc == null) break;
+          final get = http.Request('GET', Uri.parse(loc));
+          if (!kIsWeb) get.followRedirects = false;
+          res = await http.Response.fromStream(await _http.send(get).timeout(timeout));
+        }
+        return utf8.decode(res.bodyBytes);
+      } catch (e) {
+        last = e;
+        if (attempt == 0) await Future<void>.delayed(const Duration(seconds: 2));
+      }
+    }
+    throw last!;
   }
 
   String _message(http.Response r) => _messageFor(r.statusCode);

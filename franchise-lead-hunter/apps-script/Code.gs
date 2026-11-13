@@ -410,18 +410,36 @@ function handle_(req) {
   }
 }
 
-function doGet() { return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON); }
-function doPost(e) {
-  var body;
-  try {
-    if (!e || !e.postData || e.postData.contents.length > 60000) throw fail_(400, 'invalid_request');
-    body = JSON.parse(e.postData.contents);
-    body = { status: 200, data: handle_(body) };
-  } catch (err) {
-    if (!err.status) console.error(err);
-    body = { status: err.status || 500, error: err.status ? err.message : 'server_error' };
+function out_(text, callback) {
+  // With a callback name the reply is a script that calls it. Browsers can load that from any page without CORS.
+  if (callback && /^[A-Za-z_][A-Za-z0-9_]{0,60}$/.test(callback)) {
+    return ContentService.createTextOutput(callback + '(' + JSON.stringify(text) + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
-  return ContentService.createTextOutput(JSON.stringify(body)).setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON);
+}
+function run_(raw) {
+  var req;
+  try { req = JSON.parse(raw); } catch (e) { return { status: 400, error: 'invalid_request' }; }
+  try { return { status: 200, data: handle_(req) }; }
+  catch (err) {
+    if (!err.status) console.error(err);
+    return { status: err.status || 500, error: err.status ? err.message : 'server_error' };
+  }
+}
+// GET: ?p=<base64url JSON request>&callback=<name>. No parameters means a plain health check.
+function doGet(e) {
+  var q = (e && e.parameter) || {};
+  if (!q.p) return out_(JSON.stringify({ ok: true }), '');
+  if (String(q.p).length > 7000) return out_(JSON.stringify({ status: 400, error: 'invalid_request' }), q.callback);
+  var raw;
+  try { raw = Utilities.newBlob(Utilities.base64DecodeWebSafe(q.p)).getDataAsString(); }
+  catch (err) { return out_(JSON.stringify({ status: 400, error: 'invalid_request' }), q.callback); }
+  return out_(JSON.stringify(run_(raw)), q.callback);
+}
+// POST: JSON body. Used by the phone apps and for large requests.
+function doPost(e) {
+  if (!e || !e.postData || e.postData.contents.length > 60000) return out_(JSON.stringify({ status: 400, error: 'invalid_request' }), '');
+  return out_(JSON.stringify(run_(e.postData.contents)), '');
 }
 
 // ---------- one-time setup, from the Sheet's "Lead Hunter" menu ----------
