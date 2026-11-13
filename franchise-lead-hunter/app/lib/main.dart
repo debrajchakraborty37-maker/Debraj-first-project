@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'api/api_client.dart';
+import 'config.dart';
+import 'demo/demo_client.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'state/app_state.dart';
@@ -8,7 +10,7 @@ import 'theme.dart';
 
 void main() {
   runApp(ChangeNotifierProvider(
-    create: (_) => AppState(ApiClient())..restore(),
+    create: (_) => AppState(kDemo ? ApiClient(base: 'https://demo.local', client: demoClient()) : ApiClient(), demo: kDemo)..restore(),
     child: const LeadHunterApp(),
   ));
 }

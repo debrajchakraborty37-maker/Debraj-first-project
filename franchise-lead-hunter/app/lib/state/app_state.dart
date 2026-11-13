@@ -4,11 +4,12 @@ import '../api/api_client.dart';
 import '../models.dart';
 
 class AppState extends ChangeNotifier {
-  AppState(this.api, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage() {
+  AppState(this.api, {FlutterSecureStorage? storage, this.demo = false}) : _storage = storage ?? const FlutterSecureStorage() {
     api.onUnauthorized = () => logout(silent: false);
   }
 
   final ApiClient api;
+  final bool demo; // demo build: nothing is stored on the device
   final FlutterSecureStorage _storage;
   static const _tokenKey = 'flh_token';
 
@@ -30,7 +31,7 @@ class AppState extends ChangeNotifier {
   // ---- session ----
   Future<void> restore() async {
     try {
-      final t = await _storage.read(key: _tokenKey);
+      final t = demo ? null : await _storage.read(key: _tokenKey);
       if (t != null) {
         api.token = t;
         user = await api.me();
@@ -48,7 +49,7 @@ class AppState extends ChangeNotifier {
   Future<String?> login(String email, String password) async {
     try {
       user = await api.login(email.trim(), password);
-      await _storage.write(key: _tokenKey, value: api.token);
+      if (!demo) { try { await _storage.write(key: _tokenKey, value: api.token); } catch (_) {} }
       await refreshAll();
       return null;
     } on ApiException catch (e) {

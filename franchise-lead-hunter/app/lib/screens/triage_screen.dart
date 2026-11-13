@@ -144,7 +144,7 @@ class _LeadFace extends StatelessWidget {
       decoration: BoxDecoration(color: c.surface200, border: Border.all(color: c.hairline), borderRadius: BorderRadius.circular(kRadiusLg)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          QualityPill(lead.quality), Flexible(child: Muted('${lead.source.isEmpty ? 'Sheet' : lead.source} · ${lead.dateReceived}')),
+          QualityPill(lead.quality), const SizedBox(width: 10), Flexible(child: Muted('${lead.source.isEmpty ? 'Sheet' : lead.source} · ${lead.dateReceived}')),
         ]),
         const SizedBox(height: 14),
         Text(lead.budgetText, style: kMono.copyWith(fontSize: 34, fontWeight: FontWeight.w700, color: c.accent)),

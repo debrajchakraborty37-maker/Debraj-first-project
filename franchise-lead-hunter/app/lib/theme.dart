@@ -41,6 +41,7 @@ ThemeData buildTheme(Brightness b) {
     appBarTheme: AppBarTheme(backgroundColor: c.surface100, foregroundColor: c.ink, elevation: 0, scrolledUnderElevation: 0),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: c.surface200, indicatorColor: c.brandTint,
+      iconTheme: WidgetStateProperty.resolveWith((st) => IconThemeData(color: st.contains(WidgetState.selected) ? c.brand : c.muted)),
       labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.muted)),
     ),
     dividerColor: c.hairline,

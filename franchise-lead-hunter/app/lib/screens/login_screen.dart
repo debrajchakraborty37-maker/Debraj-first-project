@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import '../config.dart';
+import '../demo/demo_client.dart';
 import '../state/app_state.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -11,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _email = TextEditingController(), _password = TextEditingController();
+  final _email = TextEditingController(text: kDemo ? demoEmail : ''), _password = TextEditingController(text: kDemo ? demoPassword : '');
   bool _busy = false, _show = false;
   String? _error;
 
@@ -42,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('Franchise\nLead Hunter', style: TextStyle(fontSize: 34, height: 1.05, fontWeight: FontWeight.w800, color: c.ink)),
                   const SizedBox(height: 8),
-                  const Muted('Sign in with your team account.', size: 14),
+                  Muted(kDemo ? 'Demo with sample data. Nothing is saved. Just tap Sign in.' : 'Sign in with your team account.', size: 14),
                   const SizedBox(height: 28),
                   TextField(
                     controller: _email, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.username],
