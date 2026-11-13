@@ -29,6 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
       final bad = await state.setServer(_server.text);
       if (bad != null) { if (mounted) setState(() { _busy = false; _error = bad; }); return; }
     }
+    if (!kDemo && await state.tryOpenAccess()) { if (mounted) setState(() => _busy = false); return; }
+    if (_email.text.trim().isEmpty || _password.text.isEmpty) {
+      if (mounted) setState(() { _busy = false; _error = 'Enter your Login ID and password.'; });
+      return;
+    }
     final err = await state.login(_email.text, _password.text);
     if (!mounted) return;
     setState(() { _busy = false; _error = err; });

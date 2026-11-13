@@ -5,7 +5,7 @@ import '../models.dart';
 
 class AppState extends ChangeNotifier {
   AppState(this.api, {FlutterSecureStorage? storage, this.demo = false}) : _storage = storage ?? const FlutterSecureStorage() {
-    api.onUnauthorized = () => logout(silent: false);
+    api.onUnauthorized = () { if (!_probing) logout(silent: false); };
   }
 
   final ApiClient api;
@@ -13,6 +13,7 @@ class AppState extends ChangeNotifier {
   final FlutterSecureStorage _storage;
   static const _tokenKey = 'flh_token', _serverKey = 'flh_server';
 
+  bool _probing = false;
   AppUser? user;
   bool booting = true, loading = false, hunting = false;
   String? error;
@@ -42,6 +43,23 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  /// If the server is in open-access mode (no login), go straight in. Returns false when a login is needed.
+  Future<bool> tryOpenAccess() async {
+    _probing = true;
+    try {
+      api.token = null;
+      user = await api.me();
+      await refreshAll();
+      notifyListeners();
+      return true;
+    } on ApiException {
+      user = null;
+      return false;
+    } finally {
+      _probing = false;
+    }
+  }
+
   Future<void> restore() async {
     try {
       final saved = demo ? null : await _storage.read(key: _serverKey);
@@ -58,6 +76,7 @@ class AppState extends ChangeNotifier {
       api.token = null;
       user = null;
     }
+    if (!demo && user == null) await tryOpenAccess();
     booting = false;
     notifyListeners();
   }

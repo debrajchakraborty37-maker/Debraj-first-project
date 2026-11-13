@@ -109,6 +109,7 @@ class AppUser {
   const AppUser(this.email, this.name, this.role);
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser(_s(j['email']), _s(j['name']), _s(j['role']));
   bool get isAdmin => role == 'admin';
+  bool get isOpenAccess => email == 'open-access';
 }
 
 String _trim(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toString();

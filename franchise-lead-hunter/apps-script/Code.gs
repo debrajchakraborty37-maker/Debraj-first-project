@@ -32,10 +32,12 @@ var DEFAULT_RULES = {
   hniMinCr: 1, maxBudgetCr: 25, schedule: 'hourly', maxQueriesPerRun: 12, monthlyQueryCap: 2000 };
 var LEAD_PATCH = ['status', 'nextFollowUp', 'notes', 'owner', 'quality', 'phone', 'email'];
 var AGENCY_PATCH = ['status', 'notes', 'owner', 'phone', 'email', 'city'];
+var OPEN_USER = { email: 'open-access', name: 'Team (no login)', role: 'admin' };
 var TOKEN_HOURS = 12, HASH_ROUNDS = 3000, MAX_FAILS = 5, LOCK_SECONDS = 900;
 
 // ---------- small helpers ----------
 function props_() { return PropertiesService.getScriptProperties(); }
+function openMode_() { return props_().getProperty('OPEN_MODE') === '1'; } // temporary: no login needed
 function fail_(status, error) { var e = new Error(error); e.status = status; return e; }
 function pad2_(n) { return (n < 10 ? '0' : '') + n; }
 var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -377,7 +379,7 @@ function handle_(req) {
   var action = String(req.action || '');
   if (action === 'health') return { ok: true };
   if (action === 'login') return login_(req.email, req.password);
-  var user = verifyToken_(req.token), a = req.args || {};
+  var user = openMode_() ? OPEN_USER : verifyToken_(req.token), a = req.args || {};
   switch (action) {
     case 'me': return { user: user };
     case 'dashboard': return dashboard_();
@@ -390,7 +392,14 @@ function handle_(req) {
     case 'agencies': { var ag = readAll_('Agencies', AGENCY_FIELDS).filter(function (x) { return x.name; }); return { total: ag.length, items: ag.map(publicRow_) }; }
     case 'patchAgency': return patch_('Agencies', AGENCY_FIELDS, AGENCY_PATCH, String(a.id), a.changes);
     case 'runs': { var rs = readAll_('Runs', RUN_FIELDS).filter(function (r) { return r.id; }); return { items: rs.slice(-50).reverse().map(publicRow_) }; }
-    case 'hunt': return runHunt_('manual', user.email);
+    case 'hunt': {
+      if (openMode_()) { // without a login, limit how often search quota can be spent
+        var last = Number(props_().getProperty('LAST_MANUAL_HUNT') || 0);
+        if (Date.now() - last < 120000) throw fail_(429, 'too_many_attempts');
+        props_().setProperty('LAST_MANUAL_HUNT', String(Date.now()));
+      }
+      return runHunt_('manual', user.email);
+    }
     case 'rules': return getRules_();
     case 'saveRules': if (user.role !== 'admin') throw fail_(403, 'forbidden'); return setRules_(validRules_(a.changes));
     case 'export': {
@@ -423,6 +432,8 @@ function onOpen() {
     .addItem('3. Set Google Search keys', 'menuSearch')
     .addItem('4. Start hourly hunt', 'menuTrigger')
     .addItem('Add team member', 'menuAddUser')
+    .addItem('Open access ON (no login)', 'menuOpenOn')
+    .addItem('Open access OFF (login required)', 'menuOpenOff')
     .addItem('Show app address', 'menuUrl')
     .addToUi();
 }
@@ -478,4 +489,16 @@ function menuTrigger() {
 function menuUrl() {
   var url = ScriptApp.getService().getUrl();
   SpreadsheetApp.getUi().alert(url ? 'App address:\n' + url : 'Not deployed yet. Deploy > New deployment > Web app.');
+}
+
+function menuOpenOn() {
+  var ui = SpreadsheetApp.getUi();
+  var r = ui.alert('Turn on open access?', 'Anyone who has your app address can then use the app and see and change your leads, without a login. Keep the address private, and turn this off when you are done testing.', ui.ButtonSet.YES_NO);
+  if (r !== ui.Button.YES) return;
+  props_().setProperty('OPEN_MODE', '1');
+  ui.alert('Open access is ON. The app now opens without a login.');
+}
+function menuOpenOff() {
+  props_().deleteProperty('OPEN_MODE');
+  SpreadsheetApp.getUi().alert('Open access is OFF. The app asks for a login again.');
 }

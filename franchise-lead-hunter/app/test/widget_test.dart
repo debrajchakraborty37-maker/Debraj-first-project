@@ -131,6 +131,37 @@ void sheetServerTests() {
     expect(utf8.decode(await api.exportCsv('leads')), 'a,b\r\n');
   });
 
+  test('open access: the app goes straight in when the server needs no login, and asks for a login when it does', () async {
+    MockClient server(bool open) => MockClient((req) async {
+          if (req.method == 'POST') {
+            return http.Response('', 302, headers: {'location': 'https://script.googleusercontent.com/macros/echo?k=1#${base64Url.encode(utf8.encode(req.body))}'});
+          }
+          final sent = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(req.url.fragment)))) as Map<String, dynamic>;
+          http.Response j(int status, [Object? data]) => http.Response(jsonEncode({'status': status, if (data != null) 'data': data}), 200);
+          if (!open && sent['token'] != 't') return j(401);
+          switch (sent['action']) {
+            case 'me': return j(200, {'user': {'email': 'open-access', 'name': 'Team (no login)', 'role': 'admin'}});
+            case 'dashboard': return j(200, {
+              'leads': {'total': 1, 'hniB2b': 1, 'newCount': 1, 'hot': 0, 'followUpsDue': 0, 'pipelineValueCr': 1, 'byQuality': {}, 'byStatus': {}, 'topCities': [], 'topBrands': []},
+              'agencies': {'total': 0, 'leadsOnly': 0, 'newCount': 0, 'byType': {}, 'byStatus': {}},
+              'hunt': {'lastRun': null, 'schedule': 'hourly', 'queriesUsedThisMonth': 0, 'monthlyQueryCap': 10, 'searchConfigured': false}});
+            case 'leads': return j(200, {'total': 0, 'items': []});
+            case 'agencies': return j(200, {'total': 0, 'items': []});
+            case 'runs': return j(200, {'items': []});
+            case 'rules': return j(200, {'brands': [], 'cities': [], 'hniMinCr': 1, 'schedule': 'hourly', 'monthlyQueryCap': 10, 'maxQueriesPerRun': 5});
+          }
+          return j(404);
+        });
+    final open = AppState(ApiClient(base: exec, client: server(true)), storage: _MemStorage());
+    expect(await open.tryOpenAccess(), isTrue);
+    expect(open.user!.isOpenAccess, isTrue);
+    expect(open.dashboard!.leadsTotal, 1);
+    final closed = AppState(ApiClient(base: exec, client: server(false)), storage: _MemStorage());
+    expect(await closed.tryOpenAccess(), isFalse);
+    expect(closed.user, isNull);
+    expect(closed.error, isNull); // no "session ended" message while probing
+  });
+
   test('a normal https address is not treated as a sheet server', () {
     expect(ApiClient(base: 'https://flh-server-abc.a.run.app', client: sheetServer()).isSheetServer, isFalse);
   });

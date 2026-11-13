@@ -75,14 +75,15 @@ class LogScreen extends StatelessWidget {
         const SectionLabel('Account'),
         FlhCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(s.user?.name ?? '', style: const TextStyle(fontWeight: FontWeight.w700)),
-          Muted('${s.user?.email ?? ''} · ${s.user?.role ?? ''}'),
+          if (s.user?.isOpenAccess == true) const Muted('Open access: no login. Anyone with the link can use this app.')
+          else Muted('${s.user?.email ?? ''} · ${s.user?.role ?? ''}'),
           const SizedBox(height: 10),
           Row(children: [
             ChoiceChip(label: const Text('Dark'), selected: s.themeMode == ThemeMode.dark, showCheckmark: false, onSelected: (_) => s.setThemeMode(ThemeMode.dark)),
             const SizedBox(width: 8),
             ChoiceChip(label: const Text('Light'), selected: s.themeMode == ThemeMode.light, showCheckmark: false, onSelected: (_) => s.setThemeMode(ThemeMode.light)),
             const Spacer(),
-            TextButton(onPressed: () => s.logout(), child: const Text('Sign out')),
+            if (s.user?.isOpenAccess != true) TextButton(onPressed: () => s.logout(), child: const Text('Sign out')),
           ]),
         ])),
       ]),

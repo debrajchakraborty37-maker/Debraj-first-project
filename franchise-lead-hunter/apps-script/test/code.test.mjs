@@ -176,3 +176,18 @@ test('hunt keeps only new HNI B2B leads and agencies, logs the run, respects the
   assert.equal(t.call('hunt', { token }).data.queries, 0);
   assert.equal(t.fetches.length, before);
 });
+
+test('open access: off by default; when on, no login is needed; when off again, login is required', () => {
+  const t = boot(); vm_run(t);
+  assert.equal(t.call('dashboard').status, 401);
+  t.sandbox.props_().setProperty('OPEN_MODE', '1');
+  assert.equal(t.call('me').data.user.email, 'open-access');
+  assert.equal(t.call('dashboard').data.leads.total, 5);
+  const [first] = t.call('leads').data.items;
+  assert.equal(t.call('patchLead', { args: { id: first.id, changes: { status: 'Contacted' } } }).status, 200);
+  t.sandbox.props_().setProperty('LAST_MANUAL_HUNT', String(Date.now()));
+  assert.equal(t.call('hunt').status, 429); // hunts are rate limited without a login
+  t.sandbox.props_().deleteProperty('OPEN_MODE');
+  assert.equal(t.call('dashboard').status, 401);
+  assert.equal(t.call('login', { email: 'admin@example.com', password: 'test-only-password-1' }).status, 200);
+});
