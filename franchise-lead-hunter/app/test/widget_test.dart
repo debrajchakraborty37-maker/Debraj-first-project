@@ -63,6 +63,7 @@ Future<void> _pump(WidgetTester t, MockClient client) async {
 }
 
 void main() {
+  sheetServerTests();
   testWidgets('shows the sign-in screen first', (t) async {
     await _pump(t, _server(goodPassword: 'pw'));
     expect(find.text('Sign in'), findsOneWidget);
@@ -92,5 +93,45 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Owner, cafe chain'), findsOneWidget);
     expect(find.text('Keep'), findsOneWidget);
+  });
+}
+
+// ---- Sheet-as-server mode: one POST address, replies like Google Apps Script (302 to a result address) ----
+void sheetServerTests() {
+  const exec = 'https://script.google.com/macros/s/ABC/exec';
+  MockClient sheetServer() => MockClient((req) async {
+        if (req.method == 'POST') {
+          expect(req.headers['Content-Type'], startsWith('text/plain')); // no CORS preflight in browsers
+          return http.Response('', 302, headers: {'location': 'https://script.googleusercontent.com/macros/echo?k=1#${base64Url.encode(utf8.encode(req.body))}'});
+        }
+        final sent = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(req.url.fragment)))) as Map<String, dynamic>;
+        http.Response j(int status, [Object? data]) => http.Response(jsonEncode({'status': status, if (data != null) 'data': data}), 200);
+        switch (sent['action']) {
+          case 'login':
+            return sent['password'] == 'pw' ? j(200, {'token': 't', 'user': {'email': 'a@b.com', 'name': 'Admin', 'role': 'admin'}}) : j(401);
+          case 'leads':
+            return sent['token'] == 't' ? j(200, {'total': 1, 'items': [{'id': 'L-1', 'name': 'Owner', 'budgetCr': 3, 'status': 'New'}]}) : j(401);
+          case 'patchLead':
+            return j(200, {'id': (sent['args'] as Map)['id'], 'name': 'Owner', 'status': ((sent['args'] as Map)['changes'] as Map)['status']});
+          case 'export':
+            return j(200, {'csv': 'a,b\r\n'});
+        }
+        return j(404);
+      });
+
+  test('sheet server: login, list, patch and export go through one address and follow the redirect', () async {
+    final api = ApiClient(base: exec, client: sheetServer());
+    expect(api.isSheetServer, isTrue);
+    await expectLater(api.login('a@b.com', 'bad'), throwsA(isA<ApiException>()));
+    final u = await api.login('a@b.com', 'pw');
+    expect(u.isAdmin, isTrue);
+    final leads = await api.leads();
+    expect(leads.single.id, 'L-1');
+    expect((await api.patchLead('L-1', {'status': 'Shortlisted'})).status, 'Shortlisted');
+    expect(utf8.decode(await api.exportCsv('leads')), 'a,b\r\n');
+  });
+
+  test('a normal https address is not treated as a sheet server', () {
+    expect(ApiClient(base: 'https://flh-server-abc.a.run.app', client: sheetServer()).isSheetServer, isFalse);
   });
 }

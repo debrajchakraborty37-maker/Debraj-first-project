@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../models.dart';
@@ -18,8 +19,12 @@ class ApiClient {
       : base = (base ?? kApiBaseUrl).replaceAll(RegExp(r'/+$'), ''),
         _http = client ?? http.Client();
 
-  final String base;
+  /// Server address. Can be changed from the sign-in screen.
+  String base;
   final http.Client _http;
+
+  /// A Google Apps Script web app (the Sheet as the server) speaks one POST address with an "action"; everything else is REST.
+  bool get isSheetServer => RegExp(r'^https://script\.google(usercontent)?\.com/').hasMatch(base);
   String? token;
   void Function()? onUnauthorized;
 
@@ -27,6 +32,7 @@ class ApiClient {
 
   Future<http.Response> _send(String method, String path,
       {Object? body, Map<String, String>? query, Duration timeout = const Duration(seconds: 25)}) async {
+    if (isSheetServer) return _sendSheet(method, path, body: body, query: query, timeout: timeout);
     final headers = {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -46,13 +52,69 @@ class ApiClient {
     }
   }
 
-  String _message(http.Response r) {
-    switch (r.statusCode) {
+  /// Translates the REST-style calls into the Sheet server's single "action" address.
+  Future<http.Response> _sendSheet(String method, String path,
+      {Object? body, Map<String, String>? query, required Duration timeout}) async {
+    String action;
+    Map<String, dynamic> args = {};
+    final b = (body as Map<String, dynamic>?) ?? {};
+    final id = path.split('/').last;
+    if (path == '/api/auth/login') { action = 'login'; }
+    else if (path == '/api/auth/me') { action = 'me'; }
+    else if (path == '/api/dashboard') { action = 'dashboard'; }
+    else if (path == '/api/leads') { action = 'leads'; args = {'all': query?['segment'] == 'all'}; }
+    else if (path.startsWith('/api/leads/')) { action = 'patchLead'; args = {'id': id, 'changes': b}; }
+    else if (path == '/api/agencies') { action = 'agencies'; }
+    else if (path.startsWith('/api/agencies/')) { action = 'patchAgency'; args = {'id': id, 'changes': b}; }
+    else if (path == '/api/runs') { action = 'runs'; }
+    else if (path == '/api/hunt/run') { action = 'hunt'; }
+    else if (path == '/api/rules') { action = method == 'PUT' ? 'saveRules' : 'rules'; if (method == 'PUT') args = {'changes': b}; }
+    else if (path.startsWith('/api/export/')) { action = 'export'; args = {'kind': id.replaceAll('.csv', '')}; }
+    else { throw const ApiException(404, 'Not found.'); }
+    final payload = jsonEncode({
+      'action': action,
+      if (action == 'login') ...{'email': b['email'], 'password': b['password']} else if (token != null) 'token': token,
+      if (args.isNotEmpty) 'args': args,
+    });
+    try {
+      // text/plain keeps this a "simple" request, so browsers do not need a CORS preflight.
+      final req = http.Request('POST', Uri.parse(base))
+        ..headers['Content-Type'] = 'text/plain;charset=utf-8'
+        ..body = payload;
+      if (!kIsWeb) req.followRedirects = false;
+      var res = await http.Response.fromStream(await _http.send(req).timeout(timeout));
+      for (var hops = 0; hops < 5 && const {301, 302, 303, 307, 308}.contains(res.statusCode); hops++) {
+        final loc = res.headers['location'];
+        if (loc == null) break;
+        final get = http.Request('GET', Uri.parse(loc));
+        if (!kIsWeb) get.followRedirects = false;
+        res = await http.Response.fromStream(await _http.send(get).timeout(timeout));
+      }
+      final Map<String, dynamic> j;
+      try { j = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>; }
+      catch (_) { throw const ApiException(0, 'The Sheet server did not answer correctly. Check the server address.'); }
+      final status = (j['status'] as num?)?.toInt() ?? 500;
+      if (status == 401 && action != 'login') onUnauthorized?.call();
+      if (status >= 400) throw ApiException(status, _messageFor(status));
+      final data = j['data'];
+      if (action == 'export') return http.Response.bytes(utf8.encode((data as Map)['csv'] as String), 200);
+      return http.Response(jsonEncode(data), 200);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw const ApiException(0, 'Cannot reach the server. Check your connection and try again.');
+    }
+  }
+
+  String _message(http.Response r) => _messageFor(r.statusCode);
+
+  String _messageFor(int status) {
+    switch (status) {
       case 401: return 'Email or password is incorrect, or your session has ended.';
       case 403: return 'Only an admin can do that.';
       case 429: return 'Too many attempts. Wait a few minutes and try again.';
       case 400: return 'The server did not accept that change.';
-      default: return 'The server had a problem (${r.statusCode}). Try again.';
+      default: return 'The server had a problem ($status). Try again.';
     }
   }
 

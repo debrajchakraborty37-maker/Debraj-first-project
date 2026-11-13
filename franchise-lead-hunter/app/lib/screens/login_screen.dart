@@ -14,16 +14,22 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _email = TextEditingController(text: kDemo ? demoEmail : ''), _password = TextEditingController(text: kDemo ? demoPassword : '');
+  final _server = TextEditingController();
   bool _busy = false, _show = false;
   String? _error;
 
   @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() { _email.dispose(); _password.dispose(); _server.dispose(); super.dispose(); }
 
   Future<void> _submit() async {
     if (_busy) return;
     setState(() { _busy = true; _error = null; });
-    final err = await context.read<AppState>().login(_email.text, _password.text);
+    final state = context.read<AppState>();
+    if (!kDemo && _server.text.trim().isNotEmpty && _server.text.trim() != state.serverUrl) {
+      final bad = await state.setServer(_server.text);
+      if (bad != null) { if (mounted) setState(() { _busy = false; _error = bad; }); return; }
+    }
+    final err = await state.login(_email.text, _password.text);
     if (!mounted) return;
     setState(() { _busy = false; _error = err; });
     if (err == null) _password.clear();
@@ -68,7 +74,22 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 12),
                     Text(_error ?? session!, style: TextStyle(color: c.hot, fontWeight: FontWeight.w600)),
                   ],
-                  const SizedBox(height: 20),
+                  if (!kDemo) Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero, title: const Muted('Server address (advanced)', size: 13),
+                      children: [
+                        TextField(
+                          controller: _server, keyboardType: TextInputType.url, autocorrect: false, enableSuggestions: false,
+                          decoration: InputDecoration(labelText: 'Server address', hintText: context.read<AppState>().serverUrl),
+                        ),
+                        const SizedBox(height: 4),
+                        const Align(alignment: Alignment.centerLeft,
+                            child: Muted('Paste your Google Apps Script or Cloud Run link once. It is remembered on this device.')),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(

@@ -11,7 +11,7 @@ class AppState extends ChangeNotifier {
   final ApiClient api;
   final bool demo; // demo build: nothing is stored on the device
   final FlutterSecureStorage _storage;
-  static const _tokenKey = 'flh_token';
+  static const _tokenKey = 'flh_token', _serverKey = 'flh_server';
 
   AppUser? user;
   bool booting = true, loading = false, hunting = false;
@@ -29,7 +29,24 @@ class AppState extends ChangeNotifier {
   bool get signedIn => user != null;
 
   // ---- session ----
+  String get serverUrl => api.base;
+
+  /// Server address chosen on the sign-in screen (Cloud Run link or Google Apps Script link). HTTPS only.
+  Future<String?> setServer(String url) async {
+    final u = url.trim().replaceAll(RegExp(r'/+$'), '');
+    final ok = RegExp(r'^https://[^\s/]+').hasMatch(u) || RegExp(r'^http://(localhost|127\.0\.0\.1|10\.0\.2\.2)(:\d+)?').hasMatch(u);
+    if (!ok) return 'Enter an address that starts with https://';
+    api.base = u;
+    try { await _storage.write(key: _serverKey, value: u); } catch (_) {}
+    notifyListeners();
+    return null;
+  }
+
   Future<void> restore() async {
+    try {
+      final saved = demo ? null : await _storage.read(key: _serverKey);
+      if (saved != null && saved.isNotEmpty) api.base = saved;
+    } catch (_) {}
     try {
       final t = demo ? null : await _storage.read(key: _tokenKey);
       if (t != null) {

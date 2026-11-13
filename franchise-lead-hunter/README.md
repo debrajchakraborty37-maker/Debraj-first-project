@@ -21,6 +21,8 @@ Flutter app  ──HTTPS + login token──►  Node API  ──►  Google She
 | Push notifications, contact enrichment (Apollo) | Not built yet (Version 1.1) |
 | Android / iPhone store builds | Project is set up; needs Android SDK / Xcode on your machine |
 
+> **No server to run?** Use the Google Sheet itself as the server: see [SHEET_AS_SERVER.md](SHEET_AS_SERVER.md) (Google Apps Script in `apps-script/`).
+
 ## B2B HNI rule
 
 A lead is **HNI B2B** when its stated budget is at least the HNI line (default Rs 1 crore, editable in Hunt rules) **and** the profession is a business owner or
