@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+import fs from 'node:fs';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -7,6 +9,7 @@ import { UserDirectory, signToken, requireAuth, requireAdmin } from './auth.js';
 import { LEAD_FIELDS, AGENCY_FIELDS, LEAD_STATUSES, QUALITIES } from './schema.js';
 import { buildDashboard } from './dashboard.js';
 import { toCsv, formatDate } from './util.js';
+import { isDue } from './hunt/schedule.js';
 
 const AGENCY_STATUSES = ['New', 'Shortlisted', 'Contacted', 'Meeting', 'Negotiation', 'Won', 'Lost', 'Skipped'];
 const str = (max) => z.string().trim().max(max);
@@ -45,7 +48,16 @@ export function createApp({ cfg, repos, hunter, users = new UserDirectory(cfg) }
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', cfg.nodeEnv === 'production' ? 1 : false);
-  app.use(helmet());
+  // The same server also serves the Flutter web build, which needs wasm and blob workers.
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"], scriptSrc: ["'self'", "'wasm-unsafe-eval'"], styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'], fontSrc: ["'self'", 'data:'], connectSrc: ["'self'"],
+        workerSrc: ["'self'", 'blob:'], objectSrc: ["'none'"], baseUri: ["'self'"], frameAncestors: ["'none'"],
+      },
+    },
+  }));
   if (cfg.corsOrigins.length) app.use(cors({ origin: cfg.corsOrigins, methods: ['GET', 'POST', 'PATCH', 'PUT'] }));
   app.use(express.json({ limit: '50kb' }));
   if (cfg.nodeEnv === 'production') {
@@ -75,6 +87,18 @@ export function createApp({ cfg, repos, hunter, users = new UserDirectory(cfg) }
     console.info(`login ok for ${email}`);
     res.json({ token: signToken(cfg, user), user });
   });
+
+  // Cloud Scheduler calls this each hour. It has its own secret, separate from user logins.
+  if (cfg.schedulerToken) {
+    app.post('/internal/scheduled-hunt', wrap(async (req, res) => {
+      const given = Buffer.from(String(req.headers['x-scheduler-token'] || ''));
+      const want = Buffer.from(cfg.schedulerToken);
+      if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) return res.status(401).json({ error: 'unauthorized' });
+      const { schedule } = await repos.rules.get();
+      if (!isDue(schedule, new Date().getUTCHours())) return res.json({ skipped: `schedule is ${schedule}` });
+      res.json(await hunter.run({ trigger: 'schedule', by: 'cloud-scheduler' }));
+    }));
+  }
 
   const api = express.Router();
   api.use(requireAuth(cfg, users)); // everything below needs a valid token
@@ -157,6 +181,7 @@ export function createApp({ cfg, repos, hunter, users = new UserDirectory(cfg) }
     res.send(toCsv(rows, k[1]));
   }));
 
+  if (fs.existsSync(cfg.publicDir)) app.use(express.static(cfg.publicDir, { index: 'index.html', maxAge: '1h' }));
   app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {

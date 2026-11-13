@@ -12,7 +12,7 @@ import { toCsv } from '../src/util.js';
 
 const PW = 'test-only-password-1';
 const cfg = loadConfig({
-  STORE: 'memory', JWT_SECRET: 'x'.repeat(40), ADMIN_EMAIL: 'admin@example.com',
+  SCHEDULER_TOKEN: 'sched-token-for-tests-1234567890', STORE: 'memory', JWT_SECRET: 'x'.repeat(40), ADMIN_EMAIL: 'admin@example.com',
   ADMIN_PASSWORD_HASH: hashPassword(PW), USERS_FILE: '/nonexistent/users.json',
 });
 
@@ -33,7 +33,7 @@ async function boot({ searchResults = [] } = {}) {
     return { status: res.status, json, text };
   };
   const login = async () => (await call('/api/auth/login', { method: 'POST', body: { email: 'admin@example.com', password: PW } })).json.token;
-  return { call, login, store, search, close: () => { server.closeAllConnections(); server.close(); } };
+  return { call, login, store, search, base, close: () => { server.closeAllConnections(); server.close(); } };
 }
 
 test('every data endpoint rejects requests without a valid token', async () => {
@@ -167,4 +167,25 @@ test('hunt keeps only new HNI B2B leads and new agencies, logs the run, respects
   assert.equal(blocked.queries, 0);
   assert.equal(t.search.calls, before);
   t.close();
+});
+
+test('scheduler endpoint needs its own secret and runs the hunt when due', async () => {
+  const t = await boot({ searchResults: [] });
+  const url = (h) => ({ method: 'POST', headers: h });
+  const base = t.base;
+  assert.equal((await fetch(`${base}/internal/scheduled-hunt`, url({}))).status, 401);
+  assert.equal((await fetch(`${base}/internal/scheduled-hunt`, url({ 'x-scheduler-token': 'wrong' }))).status, 401);
+  const ok = await fetch(`${base}/internal/scheduled-hunt`, url({ 'x-scheduler-token': 'sched-token-for-tests-1234567890' }));
+  assert.equal(ok.status, 200);
+  const j = await ok.json();
+  assert.equal(j.trigger, 'schedule');
+  assert.equal(j.by, 'cloud-scheduler');
+  t.close();
+});
+
+test('extra team users can come from USERS_JSON', async () => {
+  const { UserDirectory } = await import('../src/auth.js');
+  const dir = new UserDirectory({ ...cfg, usersJson: JSON.stringify([{ email: 'Team@Example.com', name: 'Team', role: 'member', hash: hashPassword('team-pass-12345') }]) });
+  assert.equal(dir.authenticate('team@example.com', 'team-pass-12345').role, 'member');
+  assert.equal(dir.authenticate('team@example.com', 'bad'), null);
 });

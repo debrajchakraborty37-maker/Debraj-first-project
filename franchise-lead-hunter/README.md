@@ -57,7 +57,7 @@ It creates two tabs, **Runs** and **Rules**, and fills ids for existing rows. No
 
 Try it without Google: `npm run dev:demo` (in-memory sample data; set JWT_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD_HASH first).
 
-Deploy to any host with HTTPS (Google Cloud Run, Render, Railway). Set the same variables as secrets there. Keep one instance running so the hourly schedule fires once.
+Deploy on Google Cloud Run: follow [DEPLOY_CLOUD_RUN.md](DEPLOY_CLOUD_RUN.md) (one service serves the API and the phone web app).
 
 ### 3. Team accounts
 The admin is `ADMIN_EMAIL`. Add team members on the server: `npm run user:add -- name@company.com "Name" member`.

@@ -35,14 +35,16 @@ export class UserDirectory {
     const users = [{
       email: this.cfg.adminEmail, name: this.cfg.adminName, role: 'admin', hash: this.cfg.adminPasswordHash,
     }];
-    try {
-      const extra = JSON.parse(fs.readFileSync(this.cfg.usersFile, 'utf8'));
-      for (const u of extra) {
+    const sources = [];
+    try { sources.push(JSON.parse(fs.readFileSync(this.cfg.usersFile, 'utf8'))); } catch { /* no users file */ }
+    try { if (this.cfg.usersJson) sources.push(JSON.parse(this.cfg.usersJson)); } catch { /* bad USERS_JSON is ignored */ }
+    for (const extra of sources) {
+      for (const u of Array.isArray(extra) ? extra : []) {
         if (u.email && u.hash && !users.some((x) => x.email === u.email.toLowerCase())) {
           users.push({ email: u.email.toLowerCase(), name: u.name || u.email, role: u.role === 'admin' ? 'admin' : 'member', hash: u.hash });
         }
       }
-    } catch { /* no extra users file */ }
+    }
     return users;
   }
   authenticate(email, password) {

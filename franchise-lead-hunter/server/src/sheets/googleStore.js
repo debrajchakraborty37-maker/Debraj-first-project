@@ -14,9 +14,9 @@ function parseCredentials(raw) {
 /** The Google Sheet is the database. Needs a service account with Editor access to the sheet. */
 export class GoogleSheetStore {
   constructor({ sheetId, serviceAccountJson }) {
-    if (!serviceAccountJson) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON is required for the Google store');
+    // On Cloud Run no key is needed: the service's own service account is used. A key is only for running elsewhere.
     const auth = new google.auth.GoogleAuth({
-      credentials: parseCredentials(serviceAccountJson),
+      ...(serviceAccountJson ? { credentials: parseCredentials(serviceAccountJson) } : {}),
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
     this.sheets = google.sheets({ version: 'v4', auth });

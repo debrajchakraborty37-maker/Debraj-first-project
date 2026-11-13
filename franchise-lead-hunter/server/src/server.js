@@ -7,6 +7,7 @@ import { GoogleSearch } from './hunt/google.js';
 import { Hunter } from './hunt/hunt.js';
 import { createApp } from './app.js';
 import { demoSeed } from './demoData.js';
+import { isDue } from './hunt/schedule.js';
 
 const cfg = loadConfig();
 const store = cfg.store === 'memory'
@@ -22,9 +23,7 @@ if (cfg.schedulerEnabled) {
   cron.schedule('0 * * * *', async () => {
     try {
       const { schedule } = await repos.rules.get();
-      const h = new Date().getUTCHours();
-      const due = schedule === 'hourly' || (schedule === 'every3h' && h % 3 === 0) || (schedule === 'daily' && h === 2);
-      if (due) console.info('scheduled hunt', await hunter.run({ trigger: 'schedule', by: 'scheduler' }));
+      if (isDue(schedule, new Date().getUTCHours())) console.info('scheduled hunt', await hunter.run({ trigger: 'schedule', by: 'scheduler' }));
     } catch (e) { console.error('scheduled hunt failed', e.message); }
   });
 }

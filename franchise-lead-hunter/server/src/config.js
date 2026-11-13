@@ -25,11 +25,15 @@ export function loadConfig(env = process.env) {
     searchApiKey: env.GOOGLE_SEARCH_API_KEY || '',
     searchEngineId: env.GOOGLE_SEARCH_CX || '',
     schedulerEnabled: env.SCHEDULER !== 'off',
+    schedulerToken: env.SCHEDULER_TOKEN || '', // lets Cloud Scheduler trigger hunts
+    usersJson: env.USERS_JSON || '', // extra team users as JSON, e.g. from Secret Manager
+    publicDir: env.PUBLIC_DIR || new URL('../public', import.meta.url).pathname,
   };
   if (cfg.jwtSecret.length < 32) throw new Error('JWT_SECRET must be at least 32 characters');
   if (!cfg.adminEmail || !cfg.adminPasswordHash) {
     throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD_HASH must be set (use `npm run hash`)');
   }
+  if (cfg.schedulerToken && cfg.schedulerToken.length < 24) throw new Error('SCHEDULER_TOKEN must be at least 24 characters');
   if (cfg.nodeEnv === 'production' && cfg.store !== 'google') {
     throw new Error('STORE must be "google" in production');
   }
