@@ -293,3 +293,31 @@ test('linkedin import: reads the pasted CSV rows, marks them imported, skips dup
   const r3 = t.sandbox.runLinkedInImport_();
   assert.equal(r3.saved, 1);
 });
+
+test('records added without an ID (by the automation) get one, can be opened, and keep their contact details', () => {
+  const t = boot(); vm_run(t);
+  const ag = t.sheets.Agencies.grid, h = ag[0];
+  const row = (o) => h.map((x) => o[x] ?? '');
+  ag.push(row({ 'Agency name': 'Late Agency A', 'Public phone': 'Tel: 0129-4244444 (office)', 'Public email': 'a@late.example', Website: 'https://a.late.example', 'Leads only?': 'Yes' }));
+  ag.push(row({ 'Agency name': 'Late Agency B', 'Public phone': '+91 98444 43200', 'Public email': '', Website: 'b.late.example', 'Leads only?': 'No' }));
+  const token = t.login();
+  const items = t.call('agencies', { token }).data.items;
+  const a = items.find((x) => x.name === 'Late Agency A'), b = items.find((x) => x.name === 'Late Agency B');
+  assert.ok(a.id && b.id && a.id !== b.id, 'distinct non-empty ids');
+  assert.equal(new Set(items.map((x) => x.id)).size, items.length, 'all ids unique');
+  assert.equal(a.phone, 'Tel: 0129-4244444 (office)'); assert.equal(a.email, 'a@late.example'); assert.equal(a.website, 'https://a.late.example');
+  assert.equal(b.phone, '+91 98444 43200');
+  const idCol = h.indexOf('Agency ID');
+  assert.ok(ag.slice(1).every((r) => String(r[idCol]).length > 0), 'ids were saved to the Sheet');
+  assert.equal(t.call('patchAgency', { token, args: { id: b.id, changes: { status: 'Contacted' } } }).data.name, 'Late Agency B');
+  // inside the one-minute cache window a new row still opens through its row number
+  ag.push(row({ 'Agency name': 'Late Agency C', 'Public phone': '123' }));
+  const c = t.call('agencies', { token }).data.items.find((x) => x.name === 'Late Agency C');
+  assert.match(c.id, /^row-\d+$/);
+  assert.equal(t.call('patchAgency', { token, args: { id: c.id, changes: { status: 'Shortlisted' } } }).data.status, 'Shortlisted');
+  // leads behave the same
+  const ld = t.sheets.Leads.grid, lh = ld[0];
+  ld.push(lh.map((x) => ({ Name: 'Late Lead', 'Stated budget (Rs crore)': 2, Profession: 'Owner', Phone: '+919800000009', Email: 'late@example.com', Status: 'New' }[x] ?? '')));
+  const lead = t.call('leads', { token, args: { all: true } }).data.items.find((x) => x.name === 'Late Lead');
+  assert.ok(lead.id); assert.equal(lead.phone, '+919800000009'); assert.equal(lead.email, 'late@example.com');
+});

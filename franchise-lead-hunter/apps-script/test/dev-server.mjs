@@ -43,6 +43,14 @@ const ctx = {
 vm.createContext(ctx); vm.runInContext(code, ctx);
 vm.runInContext("saveUser_('admin@example.com','Admin','admin','dev-password-12345'); sheet_('Leads', LEAD_FIELDS); sheet_('Agencies', AGENCY_FIELDS); sheet_('Runs', RUN_FIELDS); sheet_('Rules', RULE_FIELDS); backfill_();", ctx);
 if (mode === 'open') store.OPEN_MODE = '1';
+if (process.env.BLANKIDS) { // rows the automation adds later: no ID yet
+  const ag = sheets.Agencies, ah = vm.runInContext("headers_(sheet_('Agencies', AGENCY_FIELDS))", ctx);
+  const mk = (o) => ah.map((x) => o[x] ?? '');
+  vm.runInContext(`(function(){var sh=SpreadsheetApp.getActive().getSheetByName('Agencies');var r=sh.getLastRow();
+    var rows=[['07 Nov 2026','Late Agency One','Database reseller','https://late-one.example','Tel: 0129-4244444 (corporate office)','sales@late-one.example','Delhi','Yes','Sells HNI lists','Rs 5,000 per pack']
+              ,['07 Nov 2026','Late Agency Two','Lead generation agency','late-two.example','+91 98444 43200 (as shown on site)','','Pune','No','Campaigns','Not public']];
+    rows.forEach(function(v,i){sh.getRange(r+1+i,1,1,v.length).setValues([v])});})()`, ctx);
+}
 
 const SHIM = `<script>window.google={script:{run:{_s:null,_f:null,withSuccessHandler(f){const r=Object.create(this);r._s=f;return r},withFailureHandler(f){const r=Object.create(this);r._f=f;return r},api(x){fetch('/api',{method:'POST',body:x}).then(r=>r.text()).then(t=>this._s&&this._s(t)).catch(e=>this._f&&this._f(e))}}}};</script>`;
 http.createServer((req, res) => {

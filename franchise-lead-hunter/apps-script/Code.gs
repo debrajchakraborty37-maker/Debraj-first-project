@@ -110,6 +110,30 @@ function appendRow_(tab, fields, obj) {
   writeCells_(tab, fields, row, obj);
   return row;
 }
+/** Records added by the automation have no ID yet. Give them one (saved to the Sheet), and fall back to row-N so any record can still be opened. */
+function ensureIds_(tab, fields) {
+  var cache = CacheService.getScriptCache();
+  if (cache.get('ids:' + tab)) return;
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(3000)) return;
+  try {
+    var sh = sheet_(tab, fields), data = sh.getDataRange().getValues(), h = data[0].map(String);
+    var hdr = function (key) { return fields.filter(function (f) { return f[0] === key; })[0][1]; };
+    var nameCol = h.indexOf(hdr('name')), idCol = h.indexOf(hdr('id')), prefix = tab === 'Leads' ? 'L' : 'A';
+    if (nameCol < 0 || idCol < 0 || data.length < 2) return;
+    var out = [], changed = false;
+    for (var r = 1; r < data.length; r++) {
+      var cur = data[r][idCol];
+      if (!cur && data[r][nameCol]) { cur = newId_(prefix); changed = true; }
+      out.push([cur === undefined ? '' : cur]);
+    }
+    if (changed) sh.getRange(2, idCol + 1, out.length, 1).setValues(out);
+    cache.put('ids:' + tab, '1', 60);
+  } finally { lock.releaseLock(); }
+}
+function withIds_(rows) { rows.forEach(function (o) { if (!o.id) o.id = 'row-' + o._row; }); return rows; }
+function listRows_(tab, fields) { ensureIds_(tab, fields); return withIds_(readAll_(tab, fields)); }
+
 function publicRow_(o) { var c = {}; Object.keys(o).forEach(function (k) { if (k !== '_row') c[k] = o[k]; }); return c; }
 
 function backfill_() { // one-time: ids and derived columns for rows that pre-date the app; only fills blanks
@@ -355,7 +379,7 @@ function checkPatch_(c) {
 }
 function patch_(tab, fields, allowed, id, changes) {
   var c = checkPatch_(pick_(changes, allowed));
-  var row = readAll_(tab, fields).filter(function (o) { return o.id === id; })[0];
+  var row = listRows_(tab, fields).filter(function (o) { return o.id === id; })[0];
   if (!row) throw fail_(404, 'not_found');
   if (tab === 'Leads') { var merged = {}; Object.keys(row).forEach(function (k) { merged[k] = row[k]; }); Object.keys(c).forEach(function (k) { merged[k] = c[k]; }); c.segment = segmentOf_(merged, getRules_().hniMinCr); }
   writeCells_(tab, fields, row._row, c);
@@ -384,12 +408,12 @@ function handle_(req) {
     case 'me': return { user: user };
     case 'dashboard': return dashboard_();
     case 'leads': {
-      var all = readAll_('Leads', LEAD_FIELDS).filter(function (l) { return l.name; });
+      var all = listRows_('Leads', LEAD_FIELDS).filter(function (l) { return l.name; });
       var items = a.all ? all : all.filter(function (l) { return l.segment === 'HNI B2B'; });
       return { total: items.length, items: items.slice(0, 500).map(publicRow_) };
     }
     case 'patchLead': return patch_('Leads', LEAD_FIELDS, LEAD_PATCH, String(a.id), a.changes);
-    case 'agencies': { var ag = readAll_('Agencies', AGENCY_FIELDS).filter(function (x) { return x.name; }); return { total: ag.length, items: ag.map(publicRow_) }; }
+    case 'agencies': { var ag = listRows_('Agencies', AGENCY_FIELDS).filter(function (x) { return x.name; }); return { total: ag.length, items: ag.map(publicRow_) }; }
     case 'patchAgency': return patch_('Agencies', AGENCY_FIELDS, AGENCY_PATCH, String(a.id), a.changes);
     case 'runs': { var rs = readAll_('Runs', RUN_FIELDS).filter(function (r) { return r.id; }); return { items: rs.slice(-50).reverse().map(publicRow_) }; }
     case 'hunt': {
