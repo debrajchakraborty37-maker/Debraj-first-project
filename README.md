@@ -7,3 +7,7 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 3. Get in `outputs/<date>/`: **Report 1** Campaign Performance Report (same layout as the manual report), **Report 2** Deep Analysis Report, `digest.md`, `facts.json`. `history/` grows daily so true day-over-day spend/CTR appear on the `Daily_Delta` tab from day 2.
 - Agent instructions: `.claude/skills/daewoo-daily-analysis/SKILL.md` · targets: `config/targets.json` · report structure: `config/structure.json`
 - Needs: python3 with pandas, numpy, openpyxl, and LibreOffice (`soffice`) for recalculation.
+
+## Expert agent (Business Analytics, JavaScript, jQuery, Python, C, C++, Data Structures & Algorithms)
+- Definition: `.claude/agents/analytics-dev-expert.md` (name: `analytics-dev-expert`).
+- Use it by asking Claude, for example: "Use the analytics-dev-expert agent to ..." or by typing `@agent-analytics-dev-expert` in Claude Code. It writes and runs the code it gives you, checks its numbers, and explains the result in plain English.
