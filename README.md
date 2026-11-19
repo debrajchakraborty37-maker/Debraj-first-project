@@ -8,6 +8,6 @@ Automated daily reporting powered by Claude: Meta Ads performance at Campaign, A
 - Agent instructions: `.claude/skills/daewoo-daily-analysis/SKILL.md` · targets: `config/targets.json` · report structure: `config/structure.json`
 - Needs: python3 with pandas, numpy, openpyxl, and LibreOffice (`soffice`) for recalculation.
 
-## Expert agent (Business Analytics, JavaScript, jQuery, Python, C, C++, Data Structures & Algorithms)
-- Definition: `.claude/agents/analytics-dev-expert.md` (name: `analytics-dev-expert`).
-- Use it by asking Claude, for example: "Use the analytics-dev-expert agent to ..." or by typing `@agent-analytics-dev-expert` in Claude Code. It writes and runs the code it gives you, checks its numbers, and explains the result in plain English.
+## Arjun: expert agent (Business Analytics, JavaScript, jQuery, Python, C, C++, Data Structures & Algorithms)
+- Definition: `.claude/agents/arjun.md` (name: `arjun`).
+- Use it by asking Claude, for example: "Ask Arjun to ..." or "Use the arjun agent to ...", or by typing `@agent-arjun` in Claude Code. It writes and runs the code it gives you, checks its numbers, and explains the result in plain English.
