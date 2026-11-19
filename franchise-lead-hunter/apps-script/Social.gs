@@ -82,6 +82,7 @@ function fbGet_(path) {
 function fbTime_(s) { return new Date(String(s).replace(/([+-]\d\d)(\d\d)$/, '$1:$2')); }
 
 function runFacebookImport_(trigger) {
+  if (paused_()) return { skipped: PAUSED_MSG };
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(2000)) return { skipped: 'An import is already running' };
   var started = new Date(), s = { queries: 0, found: 0, saved: 0, duplicates: 0, errors: 0 }, notes = [];
@@ -132,6 +133,7 @@ function ensureLinkedInTab_() {
   return sh;
 }
 function runLinkedInImport_() {
+  if (paused_()) return { skipped: PAUSED_MSG };
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(2000)) return { skipped: 'An import is already running' };
   var started = new Date(), s = { found: 0, saved: 0, duplicates: 0, errors: 0 }, notes = [];

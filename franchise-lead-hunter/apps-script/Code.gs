@@ -37,6 +37,8 @@ var TOKEN_HOURS = 12, HASH_ROUNDS = 3000, MAX_FAILS = 5, LOCK_SECONDS = 900;
 
 // ---------- small helpers ----------
 function props_() { return PropertiesService.getScriptProperties(); }
+function paused_() { return props_().getProperty('PAUSED') === '1'; } // master stop for every hunt and import
+var PAUSED_MSG = 'Collection is paused. Use Lead Hunter > Resume collection to turn it back on.';
 function openMode_() { return props_().getProperty('OPEN_MODE') === '1'; } // temporary: no login needed
 function fail_(status, error) { var e = new Error(error); e.status = status; return e; }
 function pad2_(n) { return (n < 10 ? '0' : '') + n; }
@@ -259,7 +261,7 @@ function dashboard_() {
     agencies: { total: agencies.length, leadsOnly: agencies.filter(function (a) { return a.leadsOnly === 'Yes'; }).length,
       newCount: agencies.filter(function (a) { return a.status === 'New'; }).length, byType: count_(agencies, 'type'), byStatus: count_(agencies, 'status') },
     hunt: { lastRun: last ? publicRow_(last) : null, schedule: rules.schedule, queriesUsedThisMonth: queriesThisMonth_(),
-      monthlyQueryCap: rules.monthlyQueryCap, searchConfigured: !!(props_().getProperty('SEARCH_KEY') && props_().getProperty('SEARCH_CX')) } };
+      monthlyQueryCap: rules.monthlyQueryCap, paused: paused_(), searchConfigured: !!(props_().getProperty('SEARCH_KEY') && props_().getProperty('SEARCH_CX')) } };
 }
 
 // ---------- hunt: Google search -> parse -> keep only HNI B2B -> save ----------
@@ -307,6 +309,7 @@ function buildQueries_(rules) {
   return q;
 }
 function runHunt_(trigger, by) {
+  if (paused_()) return { skipped: PAUSED_MSG };
   var lock = LockService.getScriptLock();
   if (!lock.tryLock(2000)) return { skipped: 'A hunt is already running' };
   var started = new Date(), s = { queries: 0, found: 0, saved: 0, duplicates: 0, filtered: 0, errors: 0 }, notes = [];
@@ -417,6 +420,7 @@ function handle_(req) {
     case 'patchAgency': return patch_('Agencies', AGENCY_FIELDS, AGENCY_PATCH, String(a.id), a.changes);
     case 'runs': { var rs = readAll_('Runs', RUN_FIELDS).filter(function (r) { return r.id; }); return { items: rs.slice(-50).reverse().map(publicRow_) }; }
     case 'hunt': {
+      if (paused_()) return { skipped: PAUSED_MSG };
       if (openMode_()) { // without a login, limit how often search quota can be spent
         var last = Number(props_().getProperty('LAST_MANUAL_HUNT') || 0);
         if (Date.now() - last < 120000) throw fail_(429, 'too_many_attempts');
@@ -485,6 +489,9 @@ function onOpen() {
     .addItem('Facebook: auto-import every 15 min', 'menuFbTrigger')
     .addItem('LinkedIn: set up import tab', 'menuLiSetup')
     .addItem('LinkedIn: import leads now', 'menuLiImport')
+    .addSeparator()
+    .addItem('Pause lead and agency collection', 'menuPause')
+    .addItem('Resume collection', 'menuResume')
     .addSeparator()
     .addItem('Open access ON (no login)', 'menuOpenOn')
     .addItem('Open access OFF (login required)', 'menuOpenOff')
@@ -555,4 +562,27 @@ function menuOpenOn() {
 function menuOpenOff() {
   props_().deleteProperty('OPEN_MODE');
   SpreadsheetApp.getUi().alert('Open access is OFF. The app asks for a login again.');
+}
+
+/** Stop everything that adds leads or agencies: set the master switch and delete the hourly / 15-minute triggers. */
+function setPaused_(on) {
+  var removed = 0;
+  if (on) {
+    props_().setProperty('PAUSED', '1');
+    ScriptApp.getProjectTriggers().forEach(function (t) {
+      var f = t.getHandlerFunction();
+      if (f === 'scheduledHunt' || f === 'scheduledFacebook') { ScriptApp.deleteTrigger(t); removed++; }
+    });
+  } else {
+    props_().deleteProperty('PAUSED');
+  }
+  return removed;
+}
+function menuPause() {
+  var n = setPaused_(true);
+  SpreadsheetApp.getUi().alert('Collection is PAUSED. Nothing will be added to Leads or Agencies by this script (hunts, Facebook and LinkedIn imports), and ' + n + ' automatic trigger(s) were removed. Your existing data is untouched.');
+}
+function menuResume() {
+  setPaused_(false);
+  SpreadsheetApp.getUi().alert('Collection is RESUMED. Hunts and imports can run again when you start them. Automatic schedules are not restored: use "4. Start hourly hunt" or "Facebook: auto-import" if you want them.');
 }

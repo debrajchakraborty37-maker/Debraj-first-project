@@ -52,7 +52,7 @@ function boot({ searchItems = [], fetchHandler = null } = {}) {
       getSheetByName: (n) => sheets[n] || null,
       insertSheet: (n) => (sheets[n] = makeSheet([[]])) }) },
     UrlFetchApp: { fetch: (url, opts) => { fetches.push(url); fetchLog.push({ url, opts }); if (fetchHandler) return fetchHandler(url, opts); return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ items: searchItems }) }; } },
-    ScriptApp: {},
+    ScriptApp: { _t: [{ f: 'scheduledHunt' }, { f: 'scheduledFacebook' }, { f: 'somethingElse' }], getProjectTriggers() { return this._t.map((x) => ({ getHandlerFunction: () => x.f, _x: x })); }, deleteTrigger(t) { this._t = this._t.filter((x) => x !== t._x); } },
     HtmlService: { XFrameOptionsMode: { ALLOWALL: 1 }, createHtmlOutputFromFile: (n) => ({ file: n, setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; }, getContent() { return '<html>' + n + '</html>'; } }) },
   };
   vm.createContext(sandbox);
@@ -320,4 +320,26 @@ test('records added without an ID (by the automation) get one, can be opened, an
   ld.push(lh.map((x) => ({ Name: 'Late Lead', 'Stated budget (Rs crore)': 2, Profession: 'Owner', Phone: '+919800000009', Email: 'late@example.com', Status: 'New' }[x] ?? '')));
   const lead = t.call('leads', { token, args: { all: true } }).data.items.find((x) => x.name === 'Late Lead');
   assert.ok(lead.id); assert.equal(lead.phone, '+919800000009'); assert.equal(lead.email, 'late@example.com');
+});
+
+test('pause switch: stops hunts, Facebook and LinkedIn imports, removes the automatic triggers, and resumes cleanly', () => {
+  const items = [{ title: 'Owner - Franchise Investor in Pune looking to invest in Cafe upto INR 2 crore', snippet: '', link: 'https://www.smergers.com/investor/p-new/1' }];
+  const t = boot({ searchItems: items, fetchHandler: fbServer(FB_LEADS) }); vm_run(t);
+  t.sandbox.props_().setProperties({ SEARCH_KEY: 'k', SEARCH_CX: 'c', FB_PAGE_ID: 'P1', FB_TOKEN: 'T' });
+  const token = t.login();
+  const removed = t.sandbox.setPaused_(true);
+  assert.equal(removed, 2);
+  assert.deepEqual(t.sandbox.ScriptApp.getProjectTriggers().map((x) => x.getHandlerFunction()), ['somethingElse']);
+  const before = t.fetches.length;
+  assert.match(t.call('hunt', { token }).data.skipped, /paused/i);
+  assert.match(t.sandbox.runHunt_('schedule', 'x').skipped, /paused/i);
+  assert.match(t.sandbox.runFacebookImport_('facebook-manual').skipped, /paused/i);
+  assert.match(t.sandbox.runLinkedInImport_().skipped, /paused/i);
+  t.sandbox.scheduledHunt();
+  assert.equal(t.fetches.length, before, 'no web requests while paused');
+  assert.equal(t.call('leads', { token, args: { all: true } }).data.total, 5, 'nothing added');
+  assert.equal(t.call('dashboard', { token }).data.hunt.paused, true);
+  t.sandbox.setPaused_(false);
+  assert.equal(t.call('dashboard', { token }).data.hunt.paused, false);
+  assert.ok(t.call('hunt', { token }).data.id, 'hunting works again after resume');
 });

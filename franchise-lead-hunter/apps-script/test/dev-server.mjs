@@ -43,6 +43,7 @@ const ctx = {
 vm.createContext(ctx); vm.runInContext(code, ctx);
 vm.runInContext("saveUser_('admin@example.com','Admin','admin','dev-password-12345'); sheet_('Leads', LEAD_FIELDS); sheet_('Agencies', AGENCY_FIELDS); sheet_('Runs', RUN_FIELDS); sheet_('Rules', RULE_FIELDS); backfill_();", ctx);
 if (mode === 'open') store.OPEN_MODE = '1';
+if (process.env.PAUSED) store.PAUSED = '1';
 if (process.env.BLANKIDS) { // rows the automation adds later: no ID yet
   const ag = sheets.Agencies, ah = vm.runInContext("headers_(sheet_('Agencies', AGENCY_FIELDS))", ctx);
   const mk = (o) => ah.map((x) => o[x] ?? '');
