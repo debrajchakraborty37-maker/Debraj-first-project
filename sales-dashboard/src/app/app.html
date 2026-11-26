@@ -1,0 +1,112 @@
+<main class="page">
+  <header class="hero">
+    <h1>{{ title }}</h1>
+    <p class="hero-sub">{{ subtitle() }}</p>
+  </header>
+
+  @if (store.status() === 'loading') {
+    <p class="state">Loading the sales data…</p>
+  } @else if (store.status() === 'error') {
+    <p class="state error">Could not load the data: {{ store.error() }}</p>
+  } @else {
+    <!-- filters -->
+    <section class="filters" aria-label="Filters">
+      <div class="field">
+        <span class="field-label">From (blank = first date)</span>
+        <input type="date" [value]="store.filters().from ?? ''" (change)="setFrom($event)" aria-label="From date" />
+      </div>
+      <div class="field">
+        <span class="field-label">To (blank = latest date)</span>
+        <input type="date" [value]="store.filters().to ?? ''" (change)="setTo($event)" aria-label="To date" />
+      </div>
+      <div class="presets" role="group" aria-label="Quick dates">
+        <button type="button" (click)="store.preset('latest')">Latest day</button>
+        <button type="button" (click)="store.preset('last7')">Last 7 days</button>
+        <button type="button" (click)="store.preset('mtd')">Month to date</button>
+        <button type="button" (click)="store.preset('all')">All dates</button>
+      </div>
+      <app-multi-select label="Business type" [options]="store.typeOptions()" [selected]="store.filters().businessTypes"
+        (changed)="store.patch({ businessTypes: $event })" />
+      <app-multi-select label="Brand" [options]="store.brandOptions()" [selected]="store.filters().brands"
+        (changed)="store.patch({ brands: $event })" />
+      <app-multi-select label="Location" [options]="store.locationOptions()" [selected]="store.filters().locations"
+        (changed)="store.patch({ locations: $event })" />
+      <div class="segmented" role="group" aria-label="Metric">
+        @for (m of metrics; track m) {
+          <button type="button" [class.on]="metric() === m" (click)="store.setMetric(m)">{{ m }}</button>
+        }
+      </div>
+      <button type="button" class="reset" (click)="store.clearAll()">Clear filters</button>
+    </section>
+
+    @if (noticeMissing()) {
+      <p class="notice">⚠ {{ noticeMissing() }}. See "Data checks" below.</p>
+    }
+
+    <!-- tiles -->
+    <section class="tiles tiles-6" aria-label="Key numbers">
+      @for (t of topTiles(); track t.label) { <app-kpi-tile [label]="t.label" [value]="t.value" [sub]="t.sub" [tone]="t.tone" /> }
+    </section>
+    <section class="tiles tiles-4" aria-label="Channels and period">
+      @for (t of channelTiles(); track t.label) { <app-kpi-tile [label]="t.label" [value]="t.value" [sub]="t.sub" [tone]="t.tone" /> }
+    </section>
+    <section class="tiles tiles-4" aria-label="Platforms">
+      @for (t of platformTiles(); track t.label) { <app-kpi-tile [label]="t.label" [value]="t.value" [sub]="t.sub" [tone]="t.tone" /> }
+    </section>
+
+    <!-- charts -->
+    <section class="charts" aria-label="Charts">
+      <article class="card wide">
+        <app-bar-chart [title]="'Daily trend - ' + metricName() + ' (latest 31 days)'" [labels]="labels(store.trend())"
+          [values]="values(store.trend())" [format]="chartFormat()" [axisFormat]="axisFormat()" color="#1565c0" />
+      </article>
+      <article class="card">
+        <app-bar-chart [title]="'Brand ranking - ' + metricName()" [labels]="labels(store.brandsRank())" [values]="values(store.brandsRank())"
+          [horizontal]="true" [format]="chartFormat()" [axisFormat]="axisFormat()" color="#2e7d32" />
+      </article>
+      <article class="card">
+        <app-bar-chart [title]="'Average per day by weekday - ' + metricName()" [labels]="labels(store.weekdays())"
+          [values]="values(store.weekdays())" [format]="chartFormat()" [axisFormat]="axisFormat()" color="#ef6c00" />
+      </article>
+      <article class="card wide">
+        <app-bar-chart [title]="'Top 10 locations - ' + metricName()" [labels]="labels(store.locationsRank())"
+          [values]="values(store.locationsRank())" [horizontal]="true" [format]="chartFormat()" [axisFormat]="axisFormat()" color="#6a1b9a" />
+      </article>
+    </section>
+
+    <!-- tables -->
+    <section class="charts" aria-label="Business types and data checks">
+      <article class="card">
+        <h3 class="card-title">APC by business type (Net Sales / Bill Cuts)</h3>
+        <table>
+          <thead><tr><th>Business type</th><th class="r">Net sales</th><th class="r">Bills</th><th class="r">APC</th></tr></thead>
+          <tbody>
+            @for (r of store.apc(); track r.type) {
+              <tr><td>{{ r.type }}</td><td class="r">{{ fmtRs(r.net) }}</td><td class="r">{{ fmtNum(r.bills) }}</td>
+                <td class="r">{{ r.apc == null ? '-' : fmtRs(r.apc) }}</td></tr>
+            } @empty { <tr><td colspan="4">No data in the selection</td></tr> }
+          </tbody>
+        </table>
+      </article>
+      <article class="card">
+        <h3 class="card-title">Data checks</h3>
+        <ul class="checks">
+          <li><b>{{ store.merged() }}</b> repeated entries (same date, brand and location) were added together.</li>
+          <li>Latest date in the data: <b>{{ store.latest() ? dayMonthYear(store.latest()!) : '-' }}</b>.</li>
+          <li>
+            @if (store.missing().length) {
+              <b>{{ store.missing().length }}</b> location(s) have no Net Sales on the as-of date:
+              {{ store.missing().slice(0, 12).join(', ') }}{{ store.missing().length > 12 ? ' …' : '' }}.
+            } @else { Every location reported Net Sales on the as-of date. }
+          </li>
+        </ul>
+      </article>
+    </section>
+
+    <footer class="note">
+      Online = Zomato Online + Swiggy Online + Ownly (net). Offline = Net Sales - Online (includes dine-in). Week to date starts on Monday and, like month to date
+      and the 31-day trend, counts up to the "To" date, or the latest date in the data when no "To" date is picked. A blank Net Sales means "not reported" and is
+      not treated as zero. Rows with the same date, brand and location are added together.
+    </footer>
+  }
+</main>
